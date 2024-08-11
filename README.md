@@ -1,2 +1,33 @@
 # LLM-multiagent-robocasa
-Implement multiagent settings in robocasa and empower them with collaborative skills through LLM
+Implement multiagent settings in robocasa and empower them with collaborative skills through LLM.
+
+## Installation
+1. set up conda environment, python 3.9 is recommended
+```
+conda create -c conda-forge -n robocasa python=3.9
+conda activate robocasa
+```   
+2. install ```robosuite``` module in editable mode, branch：robocasa_v0.1
+```
+cd robosuite
+pip install -e .
+```
+3. install ```robocasa``` module in editable mode, branch：main
+```
+cd robocasa
+pip install -e .
+conda install -c numba numba -y
+python robocasa/scripts/download_kitchen_assets.py
+python robocasa/scripts/setup_macros.py
+```
+4. install ```robomimic``` module in editable mode, branch: robocasa
+```
+cd robomimic
+pip install -e .
+```
+
+## Teleoperate
+```
+cd robocasa
+python robocasa/demos/multi_teleop_test.py
+```
