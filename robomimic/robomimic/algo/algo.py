@@ -637,7 +637,14 @@ class RolloutPolicy(object):
         if self.lang_encoder is not None:
             self._ep_lang_emb = TensorUtils.to_numpy(self.lang_encoder.get_lang_emb(lang))
         self.policy.set_eval()
-        self.policy.reset()
+        self.policy.reset() # some rnn hidden state values need to be reset
+    
+    def set_language(self, lang=None):
+        """
+        Reset self._ep_lang_emb to the language embedding corresponding to the input lang
+        """
+        if self.lang_encoder is not None:
+            self._ep_lang_emb = TensorUtils.to_numpy(self.lang_encoder.get_lang_emb(lang))
 
     def _prepare_observation(self, ob, batched=False):
         """

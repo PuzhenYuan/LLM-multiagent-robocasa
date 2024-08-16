@@ -161,7 +161,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print('\nKeyboardInterrupt, stop collecting trajectory')
             break
-        
+         
         if discard_traj: # reset env
             print('Reset the environment...')
             if ep_directory is not None:

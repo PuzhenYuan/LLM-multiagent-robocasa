@@ -77,6 +77,7 @@ if __name__ == "__main__":
         ("RestockPantry", "restock cans in pantry"),
         ("PreSoakPan", "prepare pan for washing"),
         ("PrepareCoffee", "make coffee"),
+        ("PnPCounterToMicrowave", "pick and place from counter to microwave"), # OpenSingleDoor then PnPCounterToMicrowave
     ])
 
     while True:

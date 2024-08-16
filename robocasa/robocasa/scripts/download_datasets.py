@@ -45,7 +45,7 @@ if __name__ == "__main__":
         "--tasks",
         type=str,
         nargs='+',
-        default=['ArrangeVegetables'],
+        default=['OpenSingleDoor'],
         help="Tasks to download datasets for. Defaults to all tasks"
     )
 

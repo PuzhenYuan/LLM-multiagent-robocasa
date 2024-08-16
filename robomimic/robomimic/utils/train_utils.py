@@ -195,7 +195,7 @@ def dataset_factory(config, obs_keys, filter_by_attribute=None, dataset_path=Non
     meta_ds_kwargs = dict()
 
     dataset = get_dataset(
-        ds_class=R2D2Dataset if config.train.data_format == "r2d2" else SequenceDataset,
+        ds_class=R2D2Dataset if config.train.data_format == "r2d2" else SequenceDataset, # get language embedded
         ds_kwargs=ds_kwargs,
         ds_weights=ds_weights,
         ds_langs=ds_langs,
@@ -228,7 +228,7 @@ def get_dataset(
 
         ds_kwargs_copy["dataset_lang"] = ds_langs[i]
         
-        ds_list.append(ds_class(**ds_kwargs_copy))
+        ds_list.append(ds_class(**ds_kwargs_copy)) # get language embedded, can add dataset_lang to overide
     
     if len(ds_weights) == 1:
         ds = ds_list[0]
@@ -799,7 +799,7 @@ def run_epoch(model, data_loader, epoch, validate=False, num_steps=None, obs_nor
 
         # forward and backward pass
         t = time.time()
-        info = model.train_on_batch(input_batch, epoch, validate=validate)
+        info = model.train_on_batch(input_batch, epoch, validate=validate) # check this out
         timing_stats["Train_Batch"].append(time.time() - t)
 
         # tensorboard logging

@@ -156,7 +156,7 @@ def train(config, device):
         log_tb=config.experiment.logging.log_tb,
         log_wandb=config.experiment.logging.log_wandb,
     )
-    model = algo_factory(
+    model = algo_factory( # any language encoder? need to be further checkout
         algo_name=config.algo_name,
         config=config,
         obs_key_shapes=shape_meta_list[0]["all_shapes"],
@@ -184,7 +184,7 @@ def train(config, device):
     lang_encoder = LangUtils.LangEncoder(
         device=device,
     )
-    trainset, validset = TrainUtils.load_data_for_training(
+    trainset, validset = TrainUtils.load_data_for_training( # get language embedded
         config, obs_keys=shape_meta["all_obs_keys"], lang_encoder=lang_encoder)
     train_sampler = trainset.get_dataset_sampler()
     print("\n============= Training Dataset =============")
@@ -483,7 +483,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         type=str,
-        default=None,
+        default='/home/ypz/tmp/autogen_configs/ril/bc/robocasa/im/08-11-None/08-11-24-17-50-42/json/seed_123_ds_human-50.json', # None
         help="(optional) path to a config json that will be used to override the default settings. \
             If omitted, default settings are used. This is the preferred way to run experiments.",
     )
@@ -499,7 +499,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--name",
         type=str,
-        default=None,
+        default='test', # None
         help="(optional) if provided, override the experiment name defined in the config",
     )
 

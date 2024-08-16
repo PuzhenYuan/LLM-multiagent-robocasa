@@ -16,6 +16,7 @@ import torch
 import robomimic.utils.obs_utils as ObsUtils
 import robomimic.utils.env_utils as EnvUtils
 import robomimic.utils.torch_utils as TorchUtils
+import robomimic.utils.lang_utils as LangUtils
 from robomimic.config import config_factory
 from robomimic.algo import algo_factory
 from robomimic.algo import RolloutPolicy
@@ -446,6 +447,10 @@ def policy_from_checkpoint(device=None, ckpt_path=None, ckpt_dict=None, verbose=
         # get torch device
         device = TorchUtils.get_torch_device(try_to_use_cuda=config.train.cuda)
 
+    lang_encoder = LangUtils.LangEncoder(
+        device=device,
+    )
+
     # create model and load weights
     model = algo_factory(
         algo_name,
@@ -459,7 +464,8 @@ def policy_from_checkpoint(device=None, ckpt_path=None, ckpt_dict=None, verbose=
     model = RolloutPolicy(
         model,
         obs_normalization_stats=obs_normalization_stats,
-        action_normalization_stats=action_normalization_stats
+        action_normalization_stats=action_normalization_stats,
+        lang_encoder=lang_encoder
     )
     if verbose:
         print("============= Loaded Policy =============")
