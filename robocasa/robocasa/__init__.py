@@ -390,9 +390,12 @@ from robocasa.environments.kitchen.multi_stage.restocking_supplies.beverage_sort
       BeverageSorting
 )
 
-from robocasa.environments.kitchen.designed.arrange_items import ArrangeItems # self designed
+# self designed one agent task
+from robocasa.environments.kitchen.designed.arrange_items import ArrangeItems # singletask
+from robocasa.environments.kitchen.designed.open_microwave_pnp import OpenMicrowavePnP # multitask
 
-from robocasa.environments.two_agent_kitchen.designed.two_agent_arrange import TwoAgentArrange # self designed
+# self designed two agent task
+from robocasa.environments.two_agent_kitchen.designed.two_agent_arrange import TwoAgentArrange # singletask
 
 try:
       import mimicgen

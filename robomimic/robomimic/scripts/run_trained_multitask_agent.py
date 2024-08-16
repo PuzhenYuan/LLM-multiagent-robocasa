@@ -65,7 +65,7 @@ def run_rollout_multitask_policy(
     
     # seperate env language to language commands
     env_lang = env._ep_lang_str # contrain multiple tasks, seperated by comma
-    lang_list = env_lang.split(',')
+    lang_list = env_lang.split(', ')
     policy.start_episode(lang=lang_list[0])
 
     # e.g. env.is_success() = {'task':False, 'task1':False, 'task2':False}
@@ -190,7 +190,6 @@ def run_rollout_multitask_policy(
                 print('done by some reasons')
             break
 
-
     # post process, write video, calculate returns, etc.
     if video_writer is not None:
         if batched:
@@ -277,6 +276,7 @@ def run_trained_multitask_agent(args):
         "use_camera_obs": False,
         "control_freq": 20,
         "renderer": args.renderer,
+        "camera_names": ["robot0_agentview_left", "robot0_agentview_right", "robot0_eye_in_hand"],
     }
     
     # create environment from args.env
@@ -306,9 +306,9 @@ def run_trained_multitask_agent(args):
     # )
     # data_logger = PrintLogger(os.path.join(log_dir, 'log.txt'))
     data_logger = None
-      
+
     # -------------------------------------------- copied from TrainUtils.rollout_with_stats() --------------------------------------------- #
-    ### passing some parameters ### 
+    ### passing some parameters ###
     envs = [env]
     horizon = args.horizon
     use_goals = config.use_goals
@@ -446,7 +446,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--agent",
         type=str,
-        default='/home/ypz/expdata/robocasa/im/bc_xfmr/08-11-None/seed_123_ds_human-50/20240811204559/models/model_epoch_20.pth',
+        default='path/to/OpenSingleDoor+PnPCounterToMicrowave/agent/ckpt.pth',
         # required=True,
         help="path to saved checkpoint pth file",
     )
@@ -455,7 +455,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_rollouts",
         type=int,
-        default=2,
+        default=5,
         help="number of rollouts",
     )
 
@@ -471,7 +471,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--env",
         type=str,
-        default=None,
+        default='OpenMicrowavePnP', # None
         help="(optional) override name of env from the one in the checkpoint, and use\
             it for rollouts",
     )

@@ -202,8 +202,16 @@ def collect_human_trajectory( # the most important function in robocasa
             print('Task success!')
             break
 
+        # Check if the task is successful
+        if isinstance(env._check_success(), dict): # multitask
+            assert "task" in env._check_success().keys()
+            success = env._check_success()["task"]
+        else:
+            assert isinstance(env._check_success(), bool) # singletask
+            success = env._check_success()
+            
         # state machine to check for having a success for 10 consecutive timesteps
-        if env._check_success():
+        if success:
             if task_completion_hold_count > 0:
                 task_completion_hold_count -= 1  # latched state, decrement count
             else:

@@ -67,9 +67,14 @@ if __name__ == "__main__":
 
     tasks = OrderedDict([
         ("PnPCounterToCab", "pick and place from counter to cabinet"),
+        ("PnPCabToConuter", "pick and place from cabinet to counter"),
         ("PnPCounterToSink", "pick and place from counter to sink"),
+        ("PnPSinkToCounter", "pick and place from sink to counter"),
+        ("PnPCounterToMicrowave", "pick and place from counter to microwave"),
         ("PnPMicrowaveToCounter", "pick and place from microwave to counter"),
+        ("PnPCounterToStove", "pick and place from counter to stove"),
         ("PnPStoveToCounter", "pick and place from stove to counter"),
+        
         ("OpenSingleDoor", "open cabinet or microwave door"),
         ("CloseDrawer", "close drawer"),
         ("TurnOnMicrowave", "turn on microwave"),
@@ -80,12 +85,13 @@ if __name__ == "__main__":
         ("RestockPantry", "restock cans in pantry"),
         ("PreSoakPan", "prepare pan for washing"),
         ("PrepareCoffee", "make coffee"),
-        ("PnPCounterToStove", "pick and place from counter to stove"), # added
         ("NavigateKitchen", "navigation in the kitchen"), # added
         ("MultistepSteaming", "multistep steaming"), # added
         
-        ("ArrangeItems", "one agent arranges items in the kitchen, " + colored("one agent", "yellow")), # added, self designed
-        ("TwoAgentArrange", "two agents arrange items in the kitchen, " + colored("two agents", "yellow")), # added, self designed
+        # added, self designed
+        ("ArrangeItems", "one agent arranges items in the kitchen, " + colored("one agent singletask", "yellow")), 
+        ("TwoAgentArrange", "two agents arrange items in the kitchen, " + colored("two agents singletask", "yellow")),
+        ("OpenMicrowavePnP", "open microwave door, pick the food from the counter and place it in the microwave, " + colored("one agent multitask", "yellow")),
     ])
 
     styles = OrderedDict()
@@ -167,6 +173,7 @@ if __name__ == "__main__":
             if ep_directory is not None:
                 excluded_eps.append(ep_directory.split('/')[-1])
         else:
+            time.sleep(1)
             keep = input('Keep the trajectory? (y/n): ')
             if keep == 'y' and ep_directory is not None: # save the trajectory
                 print('Save the trajectory...')

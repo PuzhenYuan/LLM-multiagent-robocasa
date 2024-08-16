@@ -91,9 +91,7 @@ def run_rollout_multitask_policy(
             ac = policy(ob=policy_ob, goal=goal_dict, batched=True) #, return_ob=True)
         else:
             policy_ob = ob_dict
-            print(ob_dict.keys())
             ac = policy(ob=policy_ob, goal=goal_dict) #, return_ob=True)
-            break
 
         # play action
         ob_dict, r, done, info = env.step(ac)
@@ -166,7 +164,7 @@ def run_rollout_multitask_policy(
                 end_step = step_i
                 break
 
-
+    # post process, write video, calculate returns, etc.
     if video_writer is not None:
         if batched:
             for env_i in range(len(video_frames)):
@@ -282,7 +280,8 @@ def run_trained_multitask_agent(args):
     # )
     # data_logger = PrintLogger(os.path.join(log_dir, 'log.txt'))
     data_logger = None
-      
+
+    # -------------------------------------------- copied from TrainUtils.rollout_with_stats() --------------------------------------------- #
     ### passing some parameters ###
     envs = [env]
     horizon = args.horizon
@@ -406,6 +405,8 @@ def run_trained_multitask_agent(args):
     if video_path is not None:
         # close video writer that was used for all envs
         video_writer.close()
+    
+    # -------------------------------------------- copied from TrainUtils.rollout_with_stats() --------------------------------------------- #
     
     print('all rollout logs:')
     print(all_rollout_logs)

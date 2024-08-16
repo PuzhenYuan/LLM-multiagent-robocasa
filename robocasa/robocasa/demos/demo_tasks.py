@@ -64,9 +64,14 @@ if __name__ == "__main__":
 
     tasks = OrderedDict([
         ("PnPCounterToCab", "pick and place from counter to cabinet"),
+        ("PnPCabToConuter", "pick and place from cabinet to counter"),
         ("PnPCounterToSink", "pick and place from counter to sink"),
+        ("PnPSinkToCounter", "pick and place from sink to counter"),
+        ("PnPCounterToMicrowave", "pick and place from counter to microwave"),
         ("PnPMicrowaveToCounter", "pick and place from microwave to counter"),
+        ("PnPCounterToStove", "pick and place from counter to stove"),
         ("PnPStoveToCounter", "pick and place from stove to counter"),
+        
         ("OpenSingleDoor", "open cabinet or microwave door"),
         ("CloseDrawer", "close drawer"),
         ("TurnOnMicrowave", "turn on microwave"),
@@ -77,7 +82,6 @@ if __name__ == "__main__":
         ("RestockPantry", "restock cans in pantry"),
         ("PreSoakPan", "prepare pan for washing"),
         ("PrepareCoffee", "make coffee"),
-        ("PnPCounterToMicrowave", "pick and place from counter to microwave"), # OpenSingleDoor then PnPCounterToMicrowave
     ])
 
     while True:

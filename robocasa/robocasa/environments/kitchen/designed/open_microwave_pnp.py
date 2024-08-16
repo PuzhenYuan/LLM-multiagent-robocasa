@@ -1,27 +1,18 @@
 from robocasa.environments.kitchen.kitchen import *
 
 
-class PnP(Kitchen):
+class OpenMicrowavePnP(Kitchen):
+    EXCLUDE_LAYOUTS = [8]
     def __init__(
-        self,
-        obj_groups="all",
+        self, 
+        obj_groups="food", 
         exclude_obj_groups=None,
-        *args,
+        *args, 
         **kwargs
     ):
         self.obj_groups = obj_groups
         self.exclude_obj_groups = exclude_obj_groups
-
         super().__init__(*args, **kwargs)
-
-    def _get_obj_cfgs(self):
-        raise NotImplementedError
-
-
-class PnPCounterToMicrowave(PnP):
-    EXCLUDE_LAYOUTS = [8]
-    def __init__(self, obj_groups="food", *args, **kwargs):
-        super().__init__(obj_groups=obj_groups, *args, **kwargs)
     
     def _setup_kitchen_references(self):
         super()._setup_kitchen_references()
@@ -41,12 +32,12 @@ class PnPCounterToMicrowave(PnP):
         Resets simulation internal configurations.
         """
         super()._reset_internal()
-        self.microwave.set_door_state(min=0.90, max=1.0, env=self, rng=self.rng)
+        self.microwave.set_door_state(min=0.0, max=0.1, env=self, rng=self.rng) # door is closed initially
 
     def get_ep_meta(self):
         ep_meta = super().get_ep_meta()
         obj_lang = self.get_obj_lang()
-        ep_meta["lang"] = f"pick the {obj_lang} from the counter and place it in the microwave"
+        ep_meta["lang"] = f"open the microwave door, pick the {obj_lang} from the counter and place it in the microwave"
         return ep_meta
     
     def _get_obj_cfgs(self):
@@ -96,8 +87,18 @@ class PnPCounterToMicrowave(PnP):
     def _check_success(self):
         obj = self.objects["obj"]
         container = self.objects["container"]
+        door_state = self.microwave.get_door_state(env=self)
+        
+        task0_success = True
+        for joint_p in door_state.values():
+            if joint_p < 0.90:
+                task0_success = False
+                break
 
         obj_container_contact = self.check_contact(obj, container)
         container_micro_contact = self.check_contact(container, self.microwave)
         gripper_obj_far = OU.gripper_obj_far(self)
-        return obj_container_contact and container_micro_contact and gripper_obj_far # return a list maybe work
+        task1_success =  obj_container_contact and container_micro_contact and gripper_obj_far # return a list maybe work
+
+        task_success = task0_success and task1_success
+        return {'task': task_success, 'task0': task0_success, 'task1': task1_success}
