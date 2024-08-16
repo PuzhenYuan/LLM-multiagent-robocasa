@@ -29,5 +29,11 @@ pip install -e .
 ## Teleoperate
 ```
 cd robocasa
-python robocasa/demos/multi_teleop_test.py
+python robocasa/demos/multi_teleop_test.py # teleoperate on single-agent or multi-agent tasks
+```
+## Validation
+```
+cd robomimic
+python robomimic/scripts/run_trained_singletask_agent.py # validate on the training environment
+python robomimic.scripts.run_trained_singletask_agent_newenv.py # validate on a new environment
 ```
