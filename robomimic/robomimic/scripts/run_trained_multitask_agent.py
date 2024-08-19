@@ -277,13 +277,16 @@ def run_trained_multitask_agent(args):
         "control_freq": 20,
         "renderer": args.renderer,
         "camera_names": ["robot0_agentview_left", "robot0_agentview_right", "robot0_eye_in_hand"],
+        "camera_heights": 128,
+        "camera_widths": 128,
+        "translucent_robot": False,
     }
     
     # create environment from args.env
     env = EnvUtils.create_env(
         env_type=EnvType.ROBOSUITE_TYPE,
         render=args.render, 
-        render_offscreen=write_video, 
+        render_offscreen=(args.video_path is None), 
         use_image_obs=write_video,
         env_lang=None, # will be overwritten by env._ep_lang_str
         **env_kwargs,
@@ -315,7 +318,7 @@ def run_trained_multitask_agent(args):
     num_episodes = args.n_rollouts
     render = args.render
     video_dir = args.video_path if write_video else None
-    epoch = 0 # epoch number can be assigned manually
+    epoch = 2 # epoch number can be assigned manually
     video_skip = args.video_skip
     terminate_on_success = config.experiment.rollout.terminate_on_success
     del_envs_after_rollouts = True
@@ -446,7 +449,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--agent",
         type=str,
-        default='path/to/OpenSingleDoor+PnPCounterToMicrowave/agent/ckpt.pth',
+        default='/home/ypz/project/model_openpnp_epoch_100.pth',
         # required=True,
         help="path to saved checkpoint pth file",
     )
@@ -455,7 +458,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_rollouts",
         type=int,
-        default=5,
+        default=2,
         help="number of rollouts",
     )
 

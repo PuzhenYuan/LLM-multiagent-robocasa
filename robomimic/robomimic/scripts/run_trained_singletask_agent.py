@@ -93,7 +93,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--agent",
         type=str,
-        default='/home/ypz/expdata/robocasa/im/bc_xfmr/08-11-None/seed_123_ds_human-50/20240811204559/models/model_epoch_20.pth',
+        default='/home/ypz/project/model_opensingledoor_epoch_1000.pth',
         # required=True,
         help="path to saved checkpoint pth file",
     )
