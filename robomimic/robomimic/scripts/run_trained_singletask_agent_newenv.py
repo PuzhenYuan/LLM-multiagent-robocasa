@@ -296,7 +296,7 @@ def run_trained_multitask_agent(args):
     video_skip = args.video_skip
     terminate_on_success = config.experiment.rollout.terminate_on_success
     del_envs_after_rollouts = True
-    verbose = False
+    verbose = args.verbose
     ### end of passing parameters ###
         
     assert isinstance(policy, RolloutPolicy)
@@ -507,6 +507,14 @@ if __name__ == "__main__":
         type=int,
         default=0, # None by default
         help="(optional) set seed for rollouts",
+    )
+    
+    # for debug use
+    parser.add_argument(
+        "--verbose",
+        type=bool,
+        default=False, # None by default
+        help="(optional) debug for rollouts",
     )
 
     args = parser.parse_args()

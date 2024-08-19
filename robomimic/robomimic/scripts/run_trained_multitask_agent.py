@@ -93,9 +93,12 @@ def run_rollout_multitask_policy(
     else:
         video_frames = []
     
+    horizon_reached = False
+    
     for task_i in range(task_num):
         policy.set_language(lang=lang_list[task_i]) # change to policy.start_episode(lang=lang_list[task_i])?
-        
+        if verbose:
+            print('Begin task{}: {}'.format(task_i, lang_list[task_i]))
         for step_i in range(horizon): #LogUtils.tqdm(range(horizon)):
             # get action from policy
             if batched:
@@ -181,13 +184,21 @@ def run_rollout_multitask_policy(
                     else:
                         end_step += step_i
                     break
+            
+            if step_i == horizon - 1:
+                horizon_reached = True
+                if verbose:
+                    print('Horizon reached, task{} failed'.format(task_i))
+                break
         if [success["task{}".format(id)] for id in range(task_num)].count(True) == task_num:
             if verbose: 
-                print('all task success in a multitask rollout!')
+                print('All task success in a multitask rollout!')
             break
         if done:
             if verbose:
-                print('done by some reasons')
+                print('Done by some reasons')
+            break
+        if horizon_reached:
             break
 
     # post process, write video, calculate returns, etc.
@@ -322,7 +333,7 @@ def run_trained_multitask_agent(args):
     video_skip = args.video_skip
     terminate_on_success = config.experiment.rollout.terminate_on_success
     del_envs_after_rollouts = True
-    verbose = False
+    verbose = args.verbose
     ### end of passing parameters ###
         
     assert isinstance(policy, RolloutPolicy)
@@ -345,7 +356,7 @@ def run_trained_multitask_agent(args):
         if video_dir is not None:
             # video is written per env
             video_str = "_epoch_{}.mp4".format(epoch) if epoch is not None else ".mp4" 
-            video_path = os.path.join(video_dir, "{}{}".format(env_name, video_str))
+            video_path = os.path.join(video_dir, "{}_{}{}".format(env_name, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"), video_str))
             video_writer = imageio.get_writer(video_path, fps=20)
             
         env_video_writer = None
@@ -367,6 +378,8 @@ def run_trained_multitask_agent(args):
         num_success = 0
         for ep_i in iterator:
             rollout_timestamp = time.time()
+            if verbose:
+                print("\nStarting episode {}...".format(ep_i + 1))
             try:
                 rollout_info = run_rollout_multitask_policy(
                     policy=policy,
@@ -400,7 +413,7 @@ def run_trained_multitask_agent(args):
                 if batched:
                     raise NotImplementedError
                 print("Episode {}, horizon={}, num_success={}".format(ep_i + 1, horizon, num_success))
-                print(json.dumps(rollout_info, sort_keys=True, indent=4))
+                # print(json.dumps(rollout_info, sort_keys=True, indent=4))
 
         if video_dir is not None:
             # close this env's video writer (next env has it's own)
@@ -438,7 +451,7 @@ def run_trained_multitask_agent(args):
     
     # -------------------------------------------- copied from TrainUtils.rollout_with_stats() --------------------------------------------- #
     
-    print('all rollout logs:')
+    print('\nAll rollout logs:')
     print(all_rollout_logs)
 
 
@@ -458,7 +471,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_rollouts",
         type=int,
-        default=2,
+        default=10,
         help="number of rollouts",
     )
 
@@ -466,7 +479,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--horizon",
         type=int,
-        default=400, # None by default
+        default=1000, # None by default
         help="(optional) override maximum horizon of rollout from the one in the checkpoint",
     )
 
@@ -490,7 +503,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--video_path",
         type=str,
-        default="/home/ypz/msclab/robocasa_space/test",
+        default="/home/ypz/msclab/robocasa_space/test/",
         help="(optional) render rollouts to this video file path",
     )
 
@@ -533,6 +546,14 @@ if __name__ == "__main__":
         type=int,
         default=0, # None by default
         help="(optional) set seed for rollouts",
+    )
+    
+    # for debug use
+    parser.add_argument(
+        "--verbose",
+        type=bool,
+        default=False, # None by default
+        help="(optional) debug for rollouts",
     )
 
     args = parser.parse_args()

@@ -49,7 +49,7 @@ def run_trained_singletask_agent(args):
         env_name=args.env, 
         render=args.render, 
         render_offscreen=(args.video_path is None), 
-        verbose=True,
+        verbose=args.verbose,
     )
 
     # maybe set seed
@@ -177,6 +177,14 @@ if __name__ == "__main__":
         type=int,
         default=0, # None by default
         help="(optional) set seed for rollouts",
+    )
+    
+    # for debug use
+    parser.add_argument(
+        "--verbose",
+        type=bool,
+        default=True, # None by default
+        help="(optional) debug for rollouts",
     )
 
     args = parser.parse_args()
