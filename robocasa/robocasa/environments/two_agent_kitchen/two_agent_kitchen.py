@@ -133,7 +133,27 @@ class TwoAgentKitchen(ManipulationEnv):
             camera_attribs=dict(fovy="60"),
             parent_body="base1_support",
         )
+        robot1_agentview_center=dict(
+            pos=[-0.6, 0.0, 1.15],
+            quat=[0.636945903301239, 0.3325185477733612, -0.3199238181114197, -0.6175596117973328],
+            parent_body="base1_support",
+        )
+        robot1_agentview_left=dict(
+            pos=[-0.5, 0.35, 1.05],
+            quat=[0.55623853, 0.29935253, -0.37678665, -0.6775092],
+            camera_attribs=dict(fovy="60"),
+            parent_body="base1_support",
+        )
+        robot1_agentview_right=dict(
+            pos=[-0.5, -0.35, 1.05],
+            quat=[0.6775091886520386, 0.3767866790294647, -0.2993525564670563, -0.55623859167099],
+            camera_attribs=dict(fovy="60"),
+            parent_body="base1_support",
+        )
         self._cam_configs["robot1_frontview"] = robot1_frontview_config
+        self._cam_configs["robot1_agentview_center"] = robot1_agentview_center
+        self._cam_configs["robot1_agentview_left"] = robot1_agentview_left
+        self._cam_configs["robot1_agentview_right"] = robot1_agentview_right
 
         initial_qpos = None
         

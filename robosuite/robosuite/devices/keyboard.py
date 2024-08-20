@@ -25,6 +25,8 @@ class Keyboard(Device):
         self._reset_state = 0
         self._enabled = False
         self._pos_step = 0.05
+        
+        self.active_id = 0 # set active robot to 0 by default, used in multiagent scene
 
         self.pos_sensitivity = pos_sensitivity
         self.rot_sensitivity = rot_sensitivity
@@ -50,6 +52,7 @@ class Keyboard(Device):
         print_command("q", "reset simulation")
         print_command("spacebar", "toggle gripper (open/close)")
         print_command("b", "toggle arm/base mode (if applicable)")
+        print_command("c", "toggle active agent (if applicable)")
         print_command("up-right-down-left", "move horizontally in x-y plane")
         print_command(".-;", "move vertically")
         print_command("o-p", "rotate (yaw)")
@@ -98,6 +101,7 @@ class Keyboard(Device):
             grasp=int(self.grasp),
             reset=self._reset_state,
             base_mode=int(self.base_mode),
+            active_id=self.active_id,
         )
 
     def on_press(self, key):
@@ -172,6 +176,10 @@ class Keyboard(Device):
                 self._reset_state = 1
                 self._enabled = False
                 self._reset_internal_state()
+            
+            # change active robot in two agents case
+            elif key.char == "c":
+                self.active_id = 0 if self.active_id == 1 else 1
 
         except AttributeError as e:
             pass

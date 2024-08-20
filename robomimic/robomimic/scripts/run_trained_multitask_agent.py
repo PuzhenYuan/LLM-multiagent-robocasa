@@ -462,7 +462,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--agent",
         type=str,
-        default='/home/ypz/project/model_openpnp_epoch_100.pth',
+        default='/home/ypz/project/model_openpnp_epoch_400.pth',
         # required=True,
         help="path to saved checkpoint pth file",
     )
@@ -544,7 +544,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seed",
         type=int,
-        default=0, # None by default
+        default=2, # None by default
         help="(optional) set seed for rollouts",
     )
     

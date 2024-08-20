@@ -112,8 +112,8 @@ if __name__ == "__main__":
         "translucent_robot": True,
     }
 
-    # args.renderer = "mjviewer" # pressing [ or ] to change all camera view
-    args.renderer = "mujoco"
+    args.renderer = "mjviewer" # pressing [ or ] to change all camera view
+    # args.renderer = "mujoco"
     
     print(colored(f"Initializing environment...", "yellow"))
     env = robosuite.make(

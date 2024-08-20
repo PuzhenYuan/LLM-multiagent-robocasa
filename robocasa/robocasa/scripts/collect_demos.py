@@ -123,23 +123,30 @@ def collect_human_trajectory( # the most important function in robocasa
             nonzero_ac_seen = True
         
         grasp = input_info['grasp']
+        active_id = input_info['active_id']
         
         # Change the active robot based on grasp infomation if there are two robots
-        if last_grasp < 0 < grasp and env.num_robots == 2:
-            if active_robot == env.robots[0]: # change active robot to robot1
-                active_robot = env.robots[1]
-                if env.renderer == 'mujoco': # only works for mujoco renderer
-                    camera_id = env.sim.model.camera_name2id('robot1_frontview')
-                    env.viewer.set_camera(camera_id=camera_id)
-            elif active_robot == env.robots[1]: # change active robot to robot0
-                active_robot = env.robots[0]
-                if env.renderer == 'mujoco': # only works for mujoco renderer
-                    camera_id = env.sim.model.camera_name2id('robot0_frontview')
-                    env.viewer.set_camera(camera_id=camera_id)
-            else:
-                raise ValueError("Invalid active robot")
+        # if last_grasp < 0 < grasp and env.num_robots == 2:
+        #     if active_robot == env.robots[0]: # change active robot to robot1
+        #         active_robot = env.robots[1]
+        #         if env.renderer == 'mujoco': # only works for mujoco renderer
+        #             camera_id = env.sim.model.camera_name2id('robot1_frontview')
+        #             env.viewer.set_camera(camera_id=camera_id)
+        #     elif active_robot == env.robots[1]: # change active robot to robot0
+        #         active_robot = env.robots[0]
+        #         if env.renderer == 'mujoco': # only works for mujoco renderer
+        #             camera_id = env.sim.model.camera_name2id('robot0_frontview')
+        #             env.viewer.set_camera(camera_id=camera_id)
+        #     else:
+        #         raise ValueError("Invalid active robot")
         
-        # Update last grasp
+        if env.num_robots == 2: # use 'c' to change active robot
+            active_robot = env.robots[active_id]
+            if env.renderer == 'mujoco': # only works for mujoco renderer
+                camera_id = env.sim.model.camera_name2id(f'robot{active_id}_frontview')
+                env.viewer.set_camera(camera_id=camera_id)
+        
+        # Update last info
         last_grasp = grasp
 
         if active_robot.is_mobile:
@@ -206,8 +213,7 @@ def collect_human_trajectory( # the most important function in robocasa
         if isinstance(env._check_success(), dict): # multitask
             assert "task" in env._check_success().keys()
             success = env._check_success()["task"]
-        else:
-            assert isinstance(env._check_success(), bool) # singletask
+        else: # singletask
             success = env._check_success()
             
         # state machine to check for having a success for 10 consecutive timesteps

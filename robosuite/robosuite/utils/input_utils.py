@@ -271,7 +271,9 @@ def input2action(device, robot, active_arm="right", env_configuration=None, mirr
         action = np.concatenate((arm_ac, gripper_ac, base_ac, mode_ac))
         # clip actions between -1 and 1
         action = np.clip(action, -1, 1)
-        return action, {"grasp": grasp, "mode": base_mode}
+        
+        active_id = state["active_id"]
+        return action, {"grasp": grasp, "mode": base_mode, "active_id": active_id}
     else:
         # Create action based on action space of individual robot
         if controller.name == "OSC_POSITION":
