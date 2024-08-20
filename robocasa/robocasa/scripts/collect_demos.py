@@ -94,7 +94,7 @@ def collect_human_trajectory( # the most important function in robocasa
 
     discard_traj = False
     
-    last_grasp = 0
+    # last_grasp = 0
 
     # Loop until we get a reset from the input or the task completes
     while True:
@@ -122,8 +122,7 @@ def collect_human_trajectory( # the most important function in robocasa
         else:
             nonzero_ac_seen = True
         
-        grasp = input_info['grasp']
-        active_id = input_info['active_id']
+        # grasp = input_info['grasp']
         
         # Change the active robot based on grasp infomation if there are two robots
         # if last_grasp < 0 < grasp and env.num_robots == 2:
@@ -140,14 +139,16 @@ def collect_human_trajectory( # the most important function in robocasa
         #     else:
         #         raise ValueError("Invalid active robot")
         
+        # Update last info
+        # last_grasp = grasp
+        
+        # Change the active robot based on 'c' key if there are two robots
+        active_id = input_info['active_id']
         if env.num_robots == 2: # use 'c' to change active robot
             active_robot = env.robots[active_id]
             if env.renderer == 'mujoco': # only works for mujoco renderer
                 camera_id = env.sim.model.camera_name2id(f'robot{active_id}_frontview')
                 env.viewer.set_camera(camera_id=camera_id)
-        
-        # Update last info
-        last_grasp = grasp
 
         if active_robot.is_mobile:
             arm_actions = input_action[:6]
