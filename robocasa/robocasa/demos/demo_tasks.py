@@ -72,16 +72,22 @@ if __name__ == "__main__":
         ("PnPCounterToStove", "pick and place from counter to stove"),
         ("PnPStoveToCounter", "pick and place from stove to counter"),
         
+        ("TurnOnSinkFaucet", "turn on the sink faucet"),
+        ("TurnOffSinkFaucet", "turn off the sink faucet"),
+        
         ("OpenSingleDoor", "open cabinet or microwave door"),
         ("CloseDrawer", "close drawer"),
         ("TurnOnMicrowave", "turn on microwave"),
         ("TurnOnSinkFaucet", "turn on sink faucet"),
         ("TurnOnStove", "turn on stove"),
+        
         ("ArrangeVegetables", "arrange vegetables on a cutting board"),
         ("MicrowaveThawing", "place frozen food in microwave for thawing"),
         ("RestockPantry", "restock cans in pantry"),
         ("PreSoakPan", "prepare pan for washing"),
         ("PrepareCoffee", "make coffee"),
+        
+        ("NavigateKitchen", "navigate in the kitchen"),
     ])
 
     while True:

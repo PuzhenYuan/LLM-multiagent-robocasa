@@ -44,7 +44,7 @@ def batchify_obs(obs_list):
     return obs
 
 
-def run_rollout_singletask_policy(
+def run_rollout_multitask_policy(
         policy, 
         env, 
         horizon,
@@ -53,6 +53,7 @@ def run_rollout_singletask_policy(
         video_writer=None,
         video_skip=5,
         terminate_on_success=False,
+        verbose=False
     ):
 
     assert isinstance(policy, RolloutPolicy)
@@ -61,7 +62,15 @@ def run_rollout_singletask_policy(
     batched = isinstance(env, SubprocVectorEnv)
 
     ob_dict = env.reset()
-    policy.start_episode(lang=env._ep_lang_str)
+    
+    # seperate env language to language commands
+    env_lang = env._ep_lang_str # contrain multiple tasks, seperated by comma
+    lang_list = env_lang.split(', ')
+    policy.start_episode(lang=lang_list[0])
+
+    # e.g. env.is_success() = {'task':False, 'task1':False, 'task2':False}
+    assert len(lang_list) == len(env.is_success()) - 1
+    task_num = len(lang_list)
  
     goal_dict = None
     if use_goals:
@@ -72,7 +81,7 @@ def run_rollout_singletask_policy(
     video_count = 0  # video frame counter
 
     rews = []
-    success = None #{ k: False for k in env.is_success() } # success metrics
+    success = { k: False for k in env.is_success() } # success metrics
 
     if batched:
         end_step = [None for _ in range(len(env))]
@@ -84,85 +93,113 @@ def run_rollout_singletask_policy(
     else:
         video_frames = []
     
-    for step_i in range(horizon): #LogUtils.tqdm(range(horizon)):
-        # get action from policy
-        if batched:
-            policy_ob = batchify_obs(ob_dict)
-            ac = policy(ob=policy_ob, goal=goal_dict, batched=True) #, return_ob=True)
-        else:
-            policy_ob = ob_dict
-            ac = policy(ob=policy_ob, goal=goal_dict) #, return_ob=True)
+    horizon_reached = False
+    
+    for task_i in range(task_num):
+        policy.set_language(lang=lang_list[task_i]) # change to policy.start_episode(lang=lang_list[task_i])?
+        if verbose:
+            print('Begin task{}: {}'.format(task_i, lang_list[task_i]))
+        for step_i in range(horizon): #LogUtils.tqdm(range(horizon)):
+            # get action from policy
+            if batched:
+                policy_ob = batchify_obs(ob_dict)
+                ac = policy(ob=policy_ob, goal=goal_dict, batched=True) #, return_ob=True)
+            else:
+                policy_ob = ob_dict
+                ac = policy(ob=policy_ob, goal=goal_dict) #, return_ob=True)
 
-        # play action
-        ob_dict, r, done, info = env.step(ac)
+            # play action
+            ob_dict, r, done, info = env.step(ac)
 
-        # render to screen
-        if render:
-            env.render(mode="human")
+            # render to screen
+            if render:
+                env.render(mode="human")
 
-        # compute reward
-        rews.append(r)
+            # compute reward
+            rews.append(r)
 
-        # cur_success_metrics = env.is_success()
-        if batched:
-            cur_success_metrics = TensorUtils.list_of_flat_dict_to_dict_of_list([info[i]["is_success"] for i in range(len(info))])
-            cur_success_metrics = {k: np.array(v) for (k, v) in cur_success_metrics.items()}
-        else:
-            cur_success_metrics = info["is_success"]
+            # cur_success_metrics = env.is_success()
+            if batched:
+                cur_success_metrics = TensorUtils.list_of_flat_dict_to_dict_of_list([info[i]["is_success"] for i in range(len(info))])
+                cur_success_metrics = {k: np.array(v) for (k, v) in cur_success_metrics.items()}
+            else:
+                cur_success_metrics = info["is_success"]
 
-        if success is None:
-            success = deepcopy(cur_success_metrics)
-        else:
-            for k in success:
-                success[k] = success[k] | cur_success_metrics[k]
+            if success is None:
+                success = deepcopy(cur_success_metrics)
+            else:
+                for k in success:
+                    success[k] = success[k] | cur_success_metrics[k]
 
-        # visualization
-        if video_writer is not None:
-            if video_count % video_skip == 0:
-                if batched:
-                    # frames = env.render(mode="rgb_array", height=video_height, width=video_width)
-                    
-                    frames = []
-                    policy_ob = deepcopy(policy_ob)
-                    for env_i in range(len(env)):
-                        cam_imgs = []
-                        for im_name in ["robot0_agentview_left_image", "robot0_agentview_right_image", "robot0_eye_in_hand_image"]:
-                            im = TensorUtils.to_numpy(
-                                policy_ob[im_name][env_i, -1]
-                            )
-                            im = np.transpose(im, (1, 2, 0))
-                            if policy_ob.get("ret", None) is not None:
-                                im_ret = TensorUtils.to_numpy(
-                                    policy_ob["ret"]["obs"][im_name][env_i,:,-1]
+            # visualization
+            if video_writer is not None:
+                if video_count % video_skip == 0:
+                    if batched:
+                        # frames = env.render(mode="rgb_array", height=video_height, width=video_width)
+                        
+                        frames = []
+                        policy_ob = deepcopy(policy_ob)
+                        for env_i in range(len(env)):
+                            cam_imgs = []
+                            for im_name in ["robot0_agentview_left_image", "robot0_agentview_right_image", "robot0_eye_in_hand_image"]:
+                                im = TensorUtils.to_numpy(
+                                    policy_ob[im_name][env_i, -1]
                                 )
-                                im_ret = np.transpose(im_ret, (0, 2, 3, 1))
-                                im = np.concatenate((im, *im_ret), axis=0)
-                            cam_imgs.append(im)
-                        frame = np.concatenate(cam_imgs, axis=1)
-                        frame = (frame * 255.0).astype(np.uint8)
-                        frames.append(frame)
+                                im = np.transpose(im, (1, 2, 0))
+                                if policy_ob.get("ret", None) is not None:
+                                    im_ret = TensorUtils.to_numpy(
+                                        policy_ob["ret"]["obs"][im_name][env_i,:,-1]
+                                    )
+                                    im_ret = np.transpose(im_ret, (0, 2, 3, 1))
+                                    im = np.concatenate((im, *im_ret), axis=0)
+                                cam_imgs.append(im)
+                            frame = np.concatenate(cam_imgs, axis=1)
+                            frame = (frame * 255.0).astype(np.uint8)
+                            frames.append(frame)
+                        
+                        for env_i in range(len(env)):
+                            frame = frames[env_i]
+                            video_frames[env_i].append(frame)
+                    else:
+                        frame = env.render(mode="rgb_array", height=512, width=512)
+                        video_frames.append(frame)
+
+                video_count += 1
+
+            # break if done
+            if batched:
+                for env_i in range(len(env)):
+                    if end_step[env_i] is not None:
+                        continue
                     
-                    for env_i in range(len(env)):
-                        frame = frames[env_i]
-                        video_frames[env_i].append(frame)
-                else:
-                    frame = env.render(mode="rgb_array", height=512, width=512)
-                    video_frames.append(frame)
-
-            video_count += 1
-
-        # break if done
-        if batched:
-            for env_i in range(len(env)):
-                if end_step[env_i] is not None:
-                    continue
-                
-                if done[env_i] or (terminate_on_success and success["task"][env_i]):
-                    end_step[env_i] = step_i
-        else:
-            if done or (terminate_on_success and success["task"]):
-                end_step = step_i
+                    if done[env_i] or (terminate_on_success and success["task{}".format(task_i)][env_i]):
+                        if task_i == 0:
+                            end_step[env_i] = step_i
+                        else:
+                            end_step[env_i] += step_i
+            else:
+                if done or (terminate_on_success and success["task{}".format(task_i)]):
+                    if task_i == 0:
+                        end_step = step_i
+                    else:
+                        end_step += step_i
+                    break
+            
+            if step_i == horizon - 1:
+                horizon_reached = True
+                if verbose:
+                    print('Horizon reached, task{} failed'.format(task_i))
                 break
+        if [success["task{}".format(id)] for id in range(task_num)].count(True) == task_num:
+            if verbose: 
+                print('All task success in a multitask rollout!')
+            break
+        if done:
+            if verbose:
+                print('Done by some reasons')
+            break
+        if horizon_reached:
+            break
 
     # post process, write video, calculate returns, etc.
     if video_writer is not None:
@@ -204,7 +241,7 @@ def run_rollout_singletask_policy(
     return results
 
 
-def run_trained_singletask_agent(args):
+def run_trained_multitask_agent(args):
     # some arg checking
     write_video = (args.video_path is not None)
     assert not (args.render and write_video) # either on-screen or video but not both
@@ -262,7 +299,7 @@ def run_trained_singletask_agent(args):
         render=args.render, 
         render_offscreen=(args.video_path is None), 
         use_image_obs=write_video,
-        env_lang="pick the vegetable from the counter", # None by default, and  will be overwritten by env._ep_lang_str
+        env_lang=None, # will be overwritten by env._ep_lang_str
         **env_kwargs,
     )
     
@@ -292,7 +329,7 @@ def run_trained_singletask_agent(args):
     num_episodes = args.n_rollouts
     render = args.render
     video_dir = args.video_path if write_video else None
-    epoch = 1 # epoch number can be assigned manually
+    epoch = 2 # epoch number can be assigned manually
     video_skip = args.video_skip
     terminate_on_success = config.experiment.rollout.terminate_on_success
     del_envs_after_rollouts = True
@@ -341,8 +378,10 @@ def run_trained_singletask_agent(args):
         num_success = 0
         for ep_i in iterator:
             rollout_timestamp = time.time()
+            if verbose:
+                print("\nStarting episode {}...".format(ep_i + 1))
             try:
-                rollout_info = run_rollout_singletask_policy(
+                rollout_info = run_rollout_multitask_policy(
                     policy=policy,
                     env=env,
                     horizon=horizon,
@@ -351,6 +390,7 @@ def run_trained_singletask_agent(args):
                     video_writer=env_video_writer,
                     video_skip=video_skip,
                     terminate_on_success=terminate_on_success,
+                    verbose=verbose,
                 )
             except Exception as e:
                 print("Rollout exception at episode number {}!".format(ep_i))
@@ -373,7 +413,7 @@ def run_trained_singletask_agent(args):
                 if batched:
                     raise NotImplementedError
                 print("Episode {}, horizon={}, num_success={}".format(ep_i + 1, horizon, num_success))
-                print(json.dumps(rollout_info, sort_keys=True, indent=4))
+                # print(json.dumps(rollout_info, sort_keys=True, indent=4))
 
         if video_dir is not None:
             # close this env's video writer (next env has it's own)
@@ -411,7 +451,7 @@ def run_trained_singletask_agent(args):
     
     # -------------------------------------------- copied from TrainUtils.rollout_with_stats() --------------------------------------------- #
     
-    print('all rollout logs:')
+    print('\nAll rollout logs:')
     print(all_rollout_logs)
 
 
@@ -422,8 +462,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--agent",
         type=str,
-        default="/home/ypz/project/model_openpnp_autodl_epoch_400.pth",
-        # '/home/ypz/expdata/robocasa/im/bc_xfmr/08-11-None/seed_123_ds_human-50/20240811204559/models/model_epoch_20.pth',
+        default='/home/ypz/project/model_openpnp_epoch_400.pth',
         # required=True,
         help="path to saved checkpoint pth file",
     )
@@ -440,7 +479,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--horizon",
         type=int,
-        default=400, # None by default
+        default=1000, # None by default
         help="(optional) override maximum horizon of rollout from the one in the checkpoint",
     )
 
@@ -448,7 +487,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--env",
         type=str,
-        default='PnPCounterToMicrowave', # None,
+        default='OpenMicrowavePnP', # None
         help="(optional) override name of env from the one in the checkpoint, and use\
             it for rollouts",
     )
@@ -464,7 +503,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--video_path",
         type=str,
-        default="/home/ypz/msclab/robocasa_space/test",
+        default="/home/ypz/msclab/robocasa_space/test/",
         help="(optional) render rollouts to this video file path",
     )
 
@@ -505,7 +544,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seed",
         type=int,
-        default=0, # None by default
+        default=2, # None by default
         help="(optional) set seed for rollouts",
     )
     
@@ -519,4 +558,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.render == False
-    run_trained_singletask_agent(args)
+    run_trained_multitask_agent(args)

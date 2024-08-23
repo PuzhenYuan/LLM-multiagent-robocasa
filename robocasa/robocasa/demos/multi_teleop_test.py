@@ -85,13 +85,16 @@ if __name__ == "__main__":
         ("RestockPantry", "restock cans in pantry"),
         ("PreSoakPan", "prepare pan for washing"),
         ("PrepareCoffee", "make coffee"),
+        ("SteamInMicrowave", "steam food in microwave"), # added
         ("NavigateKitchen", "navigation in the kitchen"), # added
         ("MultistepSteaming", "multistep steaming"), # added
         
         # added, self designed
         ("ArrangeItems", "one agent arranges items in the kitchen, " + colored("one agent singletask", "yellow")), 
+        ("OpenMicrowavePnP", "open microwave door, pick the food and place it in the microwave, " + colored("one agent multitask", "yellow")),
         ("TwoAgentArrange", "two agents arrange items in the kitchen, " + colored("two agents singletask", "yellow")),
-        ("OpenMicrowavePnP", "open microwave door, pick the food from the counter and place it in the microwave, " + colored("one agent multitask", "yellow")),
+        ("TwoAgentSteamInMicrowave", "pick the vegetable and place it in the bowl, steam them in the microwave, " + colored("two agents singletask", "yellow")),
+        ("TwoAgentWashPnPSteam", "wash the vegetable in the sink, then pick and steam it in the microwave, " + colored("two agents multitask", "yellow")),
     ])
 
     styles = OrderedDict()
@@ -104,7 +107,7 @@ if __name__ == "__main__":
     # Create argument configuration
     config = {
         "env_name": args.task,
-        "robots": ["PandaMobile", "PandaMobile"] if args.task == 'TwoAgentArrange' else "PandaMobile", 
+        "robots": ["PandaMobile", "PandaMobile"] if args.task.startswith("TwoAgent") else "PandaMobile", 
         # "PandaMobile", "VX300SMobile" are OK, while other robots may raise action space not compatible error
         "controller_configs": load_controller_config(default_controller="OSC_POSE"),
         "layout_ids": args.layout,
@@ -120,7 +123,7 @@ if __name__ == "__main__":
         **config,
         has_renderer=(args.renderer != "mjviewer"),
         has_offscreen_renderer=False,
-        render_camera="robot0_agentview_center", # important, which camera to be used, "robot0_frontview" by default
+        render_camera=None, # "robot0_agentview_center", # important, which camera to be used, "robot0_frontview" by default
         ignore_done=True,
         use_camera_obs=False,
         control_freq=20,

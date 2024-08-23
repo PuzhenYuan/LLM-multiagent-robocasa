@@ -52,7 +52,7 @@ class Keyboard(Device):
         print_command("q", "reset simulation")
         print_command("spacebar", "toggle gripper (open/close)")
         print_command("b", "toggle arm/base mode (if applicable)")
-        print_command("c", "toggle active agent (if applicable)")
+        print_command("v", "toggle active agent (if applicable)")
         print_command("up-right-down-left", "move horizontally in x-y plane")
         print_command(".-;", "move vertically")
         print_command("o-p", "rotate (yaw)")
@@ -178,7 +178,7 @@ class Keyboard(Device):
                 self._reset_internal_state()
             
             # change active robot in two agents case
-            elif key.char == "c":
+            elif key.char == "v":
                 self.active_id = 0 if self.active_id == 1 else 1
 
         except AttributeError as e:

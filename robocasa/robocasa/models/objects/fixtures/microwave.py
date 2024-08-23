@@ -64,8 +64,12 @@ class Microwave(Fixture):
         return "{}_door".format(self.name)
     
     def update_state(self, env):
-        start_button_pressed = env.check_contact(env.robots[0].gripper["right"], "{}_start_button".format(self.name))
-        stop_button_pressed = env.check_contact(env.robots[0].gripper["right"], "{}_stop_button".format(self.name))
+        if env.num_robots == 2:
+            start_button_pressed = env.check_contact(env.robots[0].gripper["right"], "{}_start_button".format(self.name)) or env.check_contact(env.robots[1].gripper["right"], "{}_start_button".format(self.name))
+            stop_button_pressed = env.check_contact(env.robots[0].gripper["right"], "{}_stop_button".format(self.name)) or env.check_contact(env.robots[1].gripper["right"], "{}_stop_button".format(self.name))
+        else:
+            start_button_pressed = env.check_contact(env.robots[0].gripper["right"], "{}_start_button".format(self.name))
+            stop_button_pressed = env.check_contact(env.robots[0].gripper["right"], "{}_stop_button".format(self.name))
         
         door_state = self.get_door_state(env)["door"]
         door_open = door_state > 0.005
@@ -82,11 +86,16 @@ class Microwave(Fixture):
         assert button in ["start_button", "stop_button"]
         button_id = env.sim.model.geom_name2id("{}{}".format(self.naming_prefix, button))
         button_pos = env.sim.data.geom_xpos[button_id]
-        gripper_site_pos = env.sim.data.site_xpos[env.robots[0].eef_site_id["right"]]
         
-        gripper_button_far = np.linalg.norm(gripper_site_pos - button_pos) > th
- 
-        return gripper_button_far
+        if env.num_robots == 2:
+            gripper_site_pos0 = env.sim.data.site_xpos[env.robots[0].eef_site_id["right"]]
+            gripper_site_pos1 = env.sim.data.site_xpos[env.robots[1].eef_site_id["right"]]
+            gripper_button_far = np.linalg.norm(gripper_site_pos0 - button_pos) > th and np.linalg.norm(gripper_site_pos1 - button_pos) > th
+            return gripper_button_far
+        else:
+            gripper_site_pos = env.sim.data.site_xpos[env.robots[0].eef_site_id["right"]]
+            gripper_button_far = np.linalg.norm(gripper_site_pos - button_pos) > th
+            return gripper_button_far
     
     @property
     def nat_lang(self):

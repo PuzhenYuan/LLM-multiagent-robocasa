@@ -396,6 +396,8 @@ from robocasa.environments.kitchen.designed.open_microwave_pnp import OpenMicrow
 
 # self designed two agent task
 from robocasa.environments.two_agent_kitchen.designed.two_agent_arrange import TwoAgentArrange # singletask
+from robocasa.environments.two_agent_kitchen.designed.two_agent_steam_in_microwave import TwoAgentSteamInMicrowave # multitask
+from robocasa.environments.two_agent_kitchen.designed.two_agent_wash_pnp_steam import TwoAgentWashPnPSteam # multitask
 
 try:
       import mimicgen
