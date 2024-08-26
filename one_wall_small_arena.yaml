@@ -220,22 +220,22 @@ main_group:
       size: [0.5, 0.60, 0.84]
       pos: [0.5, -0.30, 0.47]
 
+    - name: dishwasher
+      type: dishwasher
+
+      size: [0.65, 0.6, 0.89]
+      align_to: stack_1
+      side: right
+      alignment: top_back
+
     - name: stack_2
       type: stack
       levels: ["hinge_cabinet", "panel_cabinet"]
       percentages: [0.75, 0.25]
 
       size: [1, 0.60, 0.84]
-      align_to: stack_1
+      align_to: dishwasher
       side: right
-
-    - name: dishwasher
-      type: dishwasher
-
-      size: [0.65, 0.6, 0.89]
-      align_to: stack_2
-      side: right
-      alignment: top_back
 
     - name: stack_3
       type: stack
@@ -243,7 +243,7 @@ main_group:
       percentages: [1]
 
       size: [0.35, 0.60, 0.84]
-      align_to: dishwasher
+      align_to: stack_2
       side: right
       alignment: top_back
 
