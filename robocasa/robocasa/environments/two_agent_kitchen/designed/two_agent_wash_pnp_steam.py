@@ -1,17 +1,24 @@
 from robocasa.environments.two_agent_kitchen.two_agent_kitchen import *
-
+import robocasa.macros_private as macros # use private macros to debug
+import random
 
 class TwoAgentWashPnPSteam(TwoAgentKitchen):
     """
     Two agent kitchen environment for the task of first wash vegetables and then heat it in the microwave.
     """
-    EXCLUDE_LAYOUTS = [1, 4, 5, 6, 7, 8, 9]
+    EXCLUDE_LAYOUTS = [] 
     def __init__(self, *args, **kwargs):
+        
+        kwargs["layout_ids"] = 10 # 10 is designed for this non navigation task
+        # kwargs["style_ids"] = 10
+        # kwargs["style_ids"] = random.choice([0, 2, 3, 4, 7, 8, 11]) # for big sink, obj_x_percent: 0.63
+        kwargs["style_ids"] = random.choice([1, 5, 6, 9, 10]) # for small sink, obj_x_percent: 0.69
         super().__init__( *args, **kwargs)
 
         self.vegetables_washed = False
         self.washed_time = 0
         
+        self.task_has_succeeded = False
         self.task0_has_succeeded = False
         self.task1_has_succeeded = False
         self.task2_has_succeeded = False
@@ -20,7 +27,6 @@ class TwoAgentWashPnPSteam(TwoAgentKitchen):
         self.task5_has_succeeded = False
         self.task6_has_succeeded = False
         self.task7_has_succeeded = False
-        self.task_has_succeeded = False
 
     def _setup_kitchen_references(self):
         super()._setup_kitchen_references()
@@ -69,7 +75,7 @@ class TwoAgentWashPnPSteam(TwoAgentKitchen):
                 fixture=self.counter,
                 sample_region_kwargs=dict(
                     ref=self.sink,
-                    loc="left_right",
+                    loc="right",
                     top_size=(0.45, 0.55)
                 ),
                 size=(0.35, 0.45),
@@ -77,24 +83,24 @@ class TwoAgentWashPnPSteam(TwoAgentKitchen):
             ),
         ))
         
-        cfgs.append(dict( # near microwave
-            name="container2",
-            obj_groups=("plate"),
-            graspable=False,
-            placement=dict(
-                fixture=self.distr_counter,
-                sample_region_kwargs=dict(
-                    ref=self.microwave,
-                    loc="left_right",
-                    top_size=(0.45, 0.55)
-                ),
-                size=(0.35, 0.45),
-                pos=("ref", -1.0),
-            ),
-        ))
+        # cfgs.append(dict( # near microwave
+        #     name="container2",
+        #     obj_groups=("plate"),
+        #     graspable=False,
+        #     placement=dict(
+        #         fixture=self.distr_counter,
+        #         sample_region_kwargs=dict(
+        #             ref=self.microwave,
+        #             loc="left",
+        #             top_size=(0.45, 0.55)
+        #         ),
+        #         size=(0.35, 0.45),
+        #         pos=("ref", -1.0),
+        #     ),
+        # ))
         
         cfgs.append(dict( # in microwave
-            name="container3",
+            name="container2",
             obj_groups=("plate"),
             heatable=True,
             placement=dict(
@@ -115,7 +121,7 @@ class TwoAgentWashPnPSteam(TwoAgentKitchen):
                 fixture=self.counter,
                 sample_region_kwargs=dict(
                     ref=self.sink,
-                    loc="left_right"
+                    loc="left"
                 ),
                 size=(0.30, 0.30),
                 pos=("ref", -1.0),
@@ -128,9 +134,9 @@ class TwoAgentWashPnPSteam(TwoAgentKitchen):
     def _check_success(self):
         
         obj = self.objects["vegetable"]
-        container1= self.objects["container1"] # near sink
-        container2 = self.objects["container2"] # near microwave
-        container3 = self.objects["container3"] # in microwave
+        container1 = self.objects["container1"] # near sink
+        # container2 = self.objects["container2"] # near microwave
+        container2 = self.objects["container2"] # in microwave
         
         vegetables_in_sink = OU.obj_inside_of(self, f"vegetable", self.sink) 
         water_on = self.sink.get_handle_state(env=self)["water_on"]
@@ -157,8 +163,8 @@ class TwoAgentWashPnPSteam(TwoAgentKitchen):
         
         task4_success = self.task3_has_succeeded and microwave_door_open
         
-        obj_container_contact = self.check_contact(obj, container3)
-        container_micro_contact = self.check_contact(container3, self.microwave)
+        obj_container_contact = self.check_contact(obj, container2)
+        container_micro_contact = self.check_contact(container2, self.microwave)
         gripper_obj_far = OU.gripper_obj_far(self, obj_name="vegetable")
         
         task5_success = self.task4_has_succeeded and obj_container_contact and container_micro_contact and gripper_obj_far
@@ -178,25 +184,26 @@ class TwoAgentWashPnPSteam(TwoAgentKitchen):
         
         task_success = self.task7_has_succeeded
         
-        # for debug use   
-        # if self.task0_has_succeeded == False and task0_success == True:
-        #     print("Task 0 is success")
-        # if self.task1_has_succeeded == False and task1_success == True:
-        #     print("Task 1 is success")
-        # if self.task2_has_succeeded == False and task2_success == True:
-        #     print("Task 2 is success")
-        # if self.task3_has_succeeded == False and task3_success == True:
-        #     print("Task 3 is success")
-        # if self.task4_has_succeeded == False and task4_success == True:
-        #     print("Task 4 is success")
-        # if self.task5_has_succeeded == False and task5_success == True:
-        #     print("Task 5 is success")
-        # if self.task6_has_succeeded == False and task6_success == True:
-        #     print("Task 6 is success")
-        # if self.task7_has_succeeded == False and task7_success == True:
-        #     print("Task 7 is success")
-        # if self.task_has_succeeded == False and task_success == True:
-        #     print("All tasks are success")
+        # for debug use
+        if macros.VERBOSE:
+            if self.task0_has_succeeded == False and task0_success == True:
+                print("Task 0 is success")
+            if self.task1_has_succeeded == False and task1_success == True:
+                print("Task 1 is success")
+            if self.task2_has_succeeded == False and task2_success == True:
+                print("Task 2 is success")
+            if self.task3_has_succeeded == False and task3_success == True:
+                print("Task 3 is success")
+            if self.task4_has_succeeded == False and task4_success == True:
+                print("Task 4 is success")
+            if self.task5_has_succeeded == False and task5_success == True:
+                print("Task 5 is success")
+            if self.task6_has_succeeded == False and task6_success == True:
+                print("Task 6 is success")
+            if self.task7_has_succeeded == False and task7_success == True:
+                print("Task 7 is success")
+            if self.task_has_succeeded == False and task_success == True:
+                print("All tasks are success")
         
         self.task_has_succeeded = self.task_has_succeeded or task_success
         self.task0_has_succeeded = self.task0_has_succeeded or task0_success

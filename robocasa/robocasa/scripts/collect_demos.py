@@ -151,15 +151,15 @@ def collect_human_trajectory( # the most important function in robocasa
                 env.viewer.set_camera(camera_id=camera_id)
 
         if active_robot.is_mobile:
-            arm_actions = input_action[:6]
+            arm_actions = input_action[:6] # 0, 1, 2, 3, 4, 5
             # arm_actions = np.concatenate([arm_actions, ])
 
             # flip some actions
             arm_actions[0], arm_actions[1] = arm_actions[1], -arm_actions[0]
             arm_actions[3], arm_actions[4] = arm_actions[4], -arm_actions[3]
 
-            base_action = input_action[7:10]
-            torso_action = input_action[10:11]
+            base_action = input_action[7:10] # 7, 8, 9
+            torso_action = input_action[10:11] # 10
 
             if np.abs(torso_action[0]) < 0.50:
                 torso_action[:] = 0.0

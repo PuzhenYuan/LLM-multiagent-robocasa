@@ -31,7 +31,7 @@ from robocasa.utils.texture_swap import (
     replace_wall_texture,
     replace_floor_texture,
 )
-import robocasa.macros as macros
+import robocasa.macros_private as macros # use private macros to debug
 
 
 class TwoAgentKitchen(ManipulationEnv):
@@ -95,7 +95,7 @@ class TwoAgentKitchen(ManipulationEnv):
             self.layout_and_style_ids = layout_and_style_ids
         else:
             if layout_ids is None or layout_ids == -1 or layout_ids == [-1]:
-                layout_ids = list(range(10))
+                layout_ids = list(range(11)) # modify this if adding new layouts
             elif layout_ids == -2 or layout_ids == [-2]: # NOT involving islands/wall stacks
                 layout_ids = [0, 2, 4, 5, 7]
             elif layout_ids == -3 or layout_ids == [-3]: # involving islands/wall stacks
@@ -250,13 +250,13 @@ class TwoAgentKitchen(ManipulationEnv):
                 fxtr_placements = fxtr_placement_initializer.sample()
             except RandomizationError as e:
                 if macros.VERBOSE:
-                    print("Ranomization error in initial placement. Try #{}".format(i))
+                    print("Ranomization error in initial fixture placement. Try #{}".format(i))
                 continue
             break
         if fxtr_placements is None:
             if macros.VERBOSE:
                 print("Could not place fixtures. Trying again with self._load_model()")
-            self._load_model()
+            self._load_model() # may bootstrap many times here
             return
         self.fxtr_placements = fxtr_placements
         # Loop through all objects and reset their positions
@@ -404,12 +404,12 @@ class TwoAgentKitchen(ManipulationEnv):
         self.placement_initializer = self._get_placement_initializer(self.object_cfgs)
 
         object_placements = None
-        for i in range(1):
+        for i in range(10): # why 1 ?
             try:
                 object_placements = self.placement_initializer.sample(placed_objects=self.fxtr_placements)
             except RandomizationError as e:
                 if macros.VERBOSE:
-                    print("Ranomization error in initial placement. Try #{}".format(i))
+                    print("Ranomization error in initial object placement. Try #{}".format(i))
                 continue
             
             break

@@ -10,6 +10,9 @@ LAYOUTS = {
     7: "kitchen_layouts/G_shaped_small_arena.yaml",
     8: "kitchen_layouts/G_shaped_large_arena.yaml",
     9: "kitchen_layouts/wraparound_arena.yaml",
+    
+    # self designed layouts
+    10: "kitchen_layouts/sink_microwave_close_arena.yaml",
 
     -1: "kitchen_layouts/playground.yaml",
 }

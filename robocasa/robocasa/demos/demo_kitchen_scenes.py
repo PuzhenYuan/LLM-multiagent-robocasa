@@ -74,6 +74,7 @@ if __name__ == "__main__":
         (7, "G-shaped"),
         (8, "G-shaped (large)"),
         (9, "Wraparound"),
+        (10, "Sink Microwave Close Arena"),
     ])
 
     styles = OrderedDict()
@@ -124,7 +125,7 @@ if __name__ == "__main__":
             style = args.style
         
         if layout == -1:
-            layout = np.random.choice(range(10))
+            layout = np.random.choice(range(11)) # added
         if style == -1:
             style = np.random.choice(range(11))
     
