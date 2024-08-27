@@ -1,6 +1,8 @@
 # LLM-multiagent-robocasa
 Implement multiagent settings in robocasa and empower them with collaborative skills through LLM.
 
+<img src="photo/corner.jpg" width="50%"><img src="photo/wall.jpg" width="50%">
+
 ## Installation
 1. set up conda environment, python 3.9 is recommended
 ```
