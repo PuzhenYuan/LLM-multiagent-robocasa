@@ -53,7 +53,8 @@ def run_rollout_multitask_policy(
         video_writer=None,
         video_skip=5,
         terminate_on_success=False,
-        verbose=False
+        verbose=False,
+        env_lang=None # "task0_lang, task1_lang, ..."
     ):
 
     assert isinstance(policy, RolloutPolicy)
@@ -64,7 +65,8 @@ def run_rollout_multitask_policy(
     ob_dict = env.reset()
     
     # seperate env language to language commands
-    env_lang = env._ep_lang_str # contrain multiple tasks, seperated by comma
+    if env_lang is None:
+        env_lang = env._ep_lang_str # contrain multiple tasks, seperated by comma
     lang_list = env_lang.split(', ')
     policy.start_episode(lang=lang_list[0])
 
@@ -97,6 +99,7 @@ def run_rollout_multitask_policy(
     
     for task_i in range(task_num):
         policy.set_language(lang=lang_list[task_i]) # change to policy.start_episode(lang=lang_list[task_i])?
+        
         if verbose:
             print('Begin task{}: {}'.format(task_i, lang_list[task_i]))
         for step_i in range(horizon): #LogUtils.tqdm(range(horizon)):
@@ -279,7 +282,6 @@ def run_trained_multitask_agent(args):
         "controller_configs": load_controller_config(default_controller="OSC_POSE"),
         "layout_ids": None,
         "style_ids": None,
-        "translucent_robot": True,
         "has_renderer": (args.renderer != "mjviewer"),
         "has_offscreen_renderer": False,
         "render_camera": "robot0_agentview_center", # important, which camera to be used, "robot0_frontview" by default
@@ -293,13 +295,18 @@ def run_trained_multitask_agent(args):
         "translucent_robot": False,
     }
     
+    if args.env_lang is not None:
+        env_lang = args.env_lang # "task0_lang, task1_lang, ..."
+    else:
+        env_lang = None
+    
     # create environment from args.env
     env = EnvUtils.create_env(
         env_type=EnvType.ROBOSUITE_TYPE,
         render=args.render, 
         render_offscreen=(args.video_path is None), 
         use_image_obs=write_video,
-        env_lang=None, # will be overwritten by env._ep_lang_str
+        env_lang=None, # None by default, and will assign to env._ep_lang_str if not none, refer to env_robosuite.py
         **env_kwargs,
     )
     
@@ -391,6 +398,7 @@ def run_trained_multitask_agent(args):
                     video_skip=video_skip,
                     terminate_on_success=terminate_on_success,
                     verbose=verbose,
+                    env_lang=env_lang # "task0_lang, task1_lang, ..."
                 )
             except Exception as e:
                 print("Rollout exception at episode number {}!".format(ep_i))
@@ -462,7 +470,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--agent",
         type=str,
-        default='/home/ypz/project/model_openpnp_epoch_400.pth',
+        default='/home/ypz/project/model_openpnp_autodl_epoch_700.pth',
         # required=True,
         help="path to saved checkpoint pth file",
     )
@@ -471,7 +479,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_rollouts",
         type=int,
-        default=10,
+        default=1,
         help="number of rollouts",
     )
 
@@ -554,6 +562,14 @@ if __name__ == "__main__":
         type=bool,
         default=False, # None by default
         help="(optional) debug for rollouts",
+    )
+    
+    # manually assign environment language for 
+    parser.add_argument(
+        "--env_lang",
+        type=str,
+        default=None, # None by default, should be like "task0_lang, task1_lang, ..."
+        help="(optional) set seed for rollouts",
     )
 
     args = parser.parse_args()

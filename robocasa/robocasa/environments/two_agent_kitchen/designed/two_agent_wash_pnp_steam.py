@@ -44,14 +44,14 @@ class TwoAgentWashPnPSteam(TwoAgentKitchen):
         ep_meta = super().get_ep_meta()
         obj_lang = self.get_obj_lang(obj_name="vegetable")
         # cont_lang = self.get_obj_lang(obj_name="container")
-        ep_meta["lang"] = f"pick the {obj_lang} from the counter and place it in the sink, " + \
-                        f"turn on the sink faucet, " + \
-                        f"turn off the sink faucet, " + \
-                        f"pick the {obj_lang} from the sink and place it on the the plate located on the counter, " + \
-                        f"open the microwave door, " + \
-                        f"pick the {obj_lang} from the counter and place it in the microwave, " + \
-                        f"close the microwave door, " + \
-                        f"press the start button on the microwave"
+        ep_meta["lang"] = f"agent0 pick the {obj_lang} from the counter and place it in the sink, " + \
+                        f"agent0 turn on the sink faucet, " + \
+                        f"agent0 turn off the sink faucet, " + \
+                        f"agent0 pick the {obj_lang} from the sink and place it on the the plate located on the counter, " + \
+                        f"agent1 open the microwave door, " + \
+                        f"agent1 pick the {obj_lang} from the counter and place it in the microwave, " + \
+                        f"agent1 close the microwave door, " + \
+                        f"agent1 press the start button on the microwave"
         return ep_meta
     
     def _reset_internal(self):

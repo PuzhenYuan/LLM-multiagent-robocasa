@@ -23,7 +23,7 @@ class TwoAgentArrange(TwoAgentKitchen):
 
     def get_ep_meta(self):
         ep_meta = super().get_ep_meta()
-        ep_meta["lang"] = f"pick the item(s) from the counter and place them on the cutting board"
+        ep_meta["lang"] = f"agent1 pick the item(s) from the counter and place them on the cutting board"
         return ep_meta
     
     def _reset_internal(self):
