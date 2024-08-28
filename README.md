@@ -29,20 +29,44 @@ pip install -e .
 ```
 
 ## Teleoperate
+Teleoperate manually in this script. 
+Use a keyboard to control and a mouse to adjust the rendering camera if the renderer is mjviewer (default).
+Task includes single-task, multi-task, one-agent-task, two-agent-task. 
+This script can also collect trajectories for imitation learning.
 ```
 cd robocasa
-# teleoperate on single-agent or multi-agent tasks
 python robocasa/demos/multi_teleop_test.py 
 ```
+
 ## Validation
+`cd robomimic`
+
+1. Validate a single-task trained agent in the training environment. Use the standard way provided by robomimic project. 
 ```
-cd robomimic
-# validate a single-task trained agent in the training environment
-python robomimic/scripts/run_trained_singletask_agent_template.py
-# validate a single-task trained agent in a single-task one-agent environment
-python robomimic/scripts/run_trained_singletask_agent.py
-# validate a single-task trained agent in a multi-task one-agent environment
-python robomimic/scripts/run_trained_multitask_agent.py
-# validate a single-task trained agent in a multi-task two-agent environment
-python robomimic/scripts/run_trained_multitask_twoagent.py 
+python robomimic/scripts/run_trained_singletask_agent_template.py \
+--agent path/to/ckpt.pth
+```
+
+2. Validate a single-task trained agent in a single-task one-agent environment. Can specify different environments and command languages.
+```
+python robomimic/scripts/run_trained_singletask_agent.py \
+--agent path/to/ckpt.pth \
+--env singletask_oneagent_env \
+--env_lang "task_lang"
+```
+
+3. Validate a single-task trained agent in a multi-task one-agent environment. Can specify different environments and command languages.
+```
+python robomimic/scripts/run_trained_multitask_agent.py \
+--agent path/to/ckpt.pth \
+--env multitask_oneagent_env \
+--env_lang "task0_lang, task1_lang" # follow this format
+```
+
+4. Validate a single-task trained agent in a multi-task two-agent environment. Can specify different environments and command languages.
+```
+python robomimic/scripts/run_trained_multitask_twoagent.py \
+--agent path/to/ckpt.pth \
+--env multitask_twoagent_env \
+--env_lang "agent0 task0_lang, agent1 task1_lang" # follow this format
 ```
