@@ -36,7 +36,8 @@ python robocasa/demos/multi_teleop_test.py # teleoperate on single-agent or mult
 ## Validation
 ```
 cd robomimic
-python robomimic/scripts/run_trained_singletask_agent.py # validate on the training environment
-python robomimic/scripts/run_trained_singletask_agent_newenv.py # validate on a new environment
-python robomimic/scripts/run_trained_multitask_agent.py # validate a single-task trained agent on a multi-task environment
+python robomimic/scripts/run_trained_singletask_agent_template.py # validate on the single-task trained agent on the training environment
+python robomimic/scripts/run_trained_singletask_agent.py # validate a single-task trained agent on a single-task one-agent environment
+python robomimic/scripts/run_trained_multitask_agent.py # validate a single-task trained agent on a multi-task one-agent environment
+python robomimic/scripts/run_trained_multitask_twoagent.py # validate a single-task trained agent on a multi-task two-agent environment
 ```
