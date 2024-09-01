@@ -393,7 +393,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--dataset",
-        type="/home/ypz/msclab/robocasa_space/robocasa/robocasa/models/assets/demonstrations_private/ArrangeItems/2024-08-07-09-18-37/demo.hdf5",
+        type=str,
+        default="/home/ypz/msclab/robocasa_space/robocasa/robocasa/models/assets/demonstrations_private/ArrangeItems/2024-08-07-09-18-37/demo.hdf5",
         help="path to hdf5 dataset",
     )
     parser.add_argument(
@@ -407,7 +408,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n",
         type=int,
-        default=None,
+        default=1,
         help="(optional) stop after n trajectories are played",
     )
 
@@ -453,7 +454,7 @@ if __name__ == "__main__":
         "--render_image_names",
         type=str,
         nargs='+',
-        default=["robot0_agentview_left", "robot0_agentview_right", "robot0_eye_in_hand"],
+        default=['top_down_perspective'], # ["robot0_agentview_left", "robot0_agentview_right", "robot0_eye_in_hand"],
         help="(optional) camera name(s) / image observation(s) to use for rendering on-screen or to video. Default is"
              "None, which corresponds to a predefined camera for each env type",
     )
@@ -478,4 +479,5 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    args.render = True
     playback_dataset(args)

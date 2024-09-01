@@ -63,6 +63,14 @@ SCENE_SPLITS = {
 }
 
 CAM_CONFIGS = dict(
+    
+    top_down_perspective=dict(
+        pos=[2, -2, 5],
+        quat=[1, 0, 0, 0],
+        camera_attribs=dict(fovy="60"),
+        parent_body=None,
+    ),
+    
     robot0_agentview_center=dict(
         pos=[-0.6, 0.0, 1.15],
         quat=[0.636945903301239, 0.3325185477733612, -0.3199238181114197, -0.6175596117973328],
@@ -93,10 +101,4 @@ CAM_CONFIGS = dict(
         parent_body="robot0_right_hand",
     ),
     
-    # robot1_frontview=dict(
-    #     pos=[-0.50, 0, 0.95],
-    #     quat=[0.6088936924934387, 0.3814677894115448, -0.3673907518386841, -0.5905545353889465],
-    #     camera_attribs=dict(fovy="60"),
-    #     parent_body="base1_support",
-    # ),
 )

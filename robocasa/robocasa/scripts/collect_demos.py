@@ -88,9 +88,9 @@ def collect_human_trajectory( # the most important function in robocasa
     for _ in range(1):
         # do a dummy step thru base env to initalize things, but don't record the step
         if isinstance(env, DataCollectionWrapper):
-            env.env.step(zero_action)
+            obs, _, _, _ = env.env.step(zero_action)
         else:
-            env.step(zero_action)
+            obs, _, _, _ = env.step(zero_action)
 
     discard_traj = False
     
@@ -200,6 +200,10 @@ def collect_human_trajectory( # the most important function in robocasa
             else:
                 raise ValueError("Invalid active robot")
 
+        # Uncomment to use optimal planner
+        # action = env.get_action(obs)
+        # print('action', action)
+        
         # Run environment step
         obs, reward, done, info = env.step(action)
         if render:
