@@ -23,35 +23,41 @@ class PIDController:
 class NavigateKitchen(Kitchen):
     def __init__(self, *args, **kwargs):
         kwargs["layout_ids"] = -2 # no island
-        super().__init__(*args, **kwargs)
         
+        # controller specific parameters
         self.task_stage = 0 # used in planning
         self.init_pos = None
         self.middle1_pos = None
         self.middle2_pos = None
         
         # PID controller parameters
-        kp_pos = 3.0
-        ki_pos = 0
-        kd_pos = 0
+        kp_pos = 4.0
+        ki_pos = 0.01
+        kd_pos = 0.01
         kp_ori = 1.5
-        ki_ori = 0.1
+        ki_ori = 0.05
         kd_ori = 0
 
         # create pid controllers
         self.pid_x = PIDController(kp=kp_pos, ki=ki_pos, kd=kd_pos)
         self.pid_y = PIDController(kp=kp_pos, ki=ki_pos, kd=kd_pos)
+        self.pid_pos = PIDController(kp=kp_pos, ki=ki_pos, kd=kd_pos)
         self.pid_ori = PIDController(kp=kp_ori, ki=ki_ori, kd=kd_ori)
+        
+        super().__init__(*args, **kwargs)
     
     def _reset_internal(self):
         super()._reset_internal()
+        
+        # reset controller specific parameters
         self.task_stage = 0
         self.init_pos = None
         self.middle1_pos = None
         self.middle2_pos = None
-        self.pid_x.reset() if hasattr(self, "pid_x") else None
-        self.pid_y.reset() if hasattr(self, "pid_y") else None
-        self.pid_ori.reset() if hasattr(self, "pid_ori") else None
+        self.pid_x.reset()
+        self.pid_y.reset()
+        self.pid_pos.reset()
+        self.pid_ori.reset()
 
     def _setup_kitchen_references(self):
         super()._setup_kitchen_references()
@@ -112,7 +118,7 @@ class NavigateKitchen(Kitchen):
 
         return pos_check and ori_check
     
-    def get_action(self, obs):
+    def get_control(self, obs):
         # get base position and orientation
         base_pos = obs['robot0_base_pos'][:2]
         base_ori = T.mat2euler(T.quat2mat(obs['robot0_base_quat']))[2]
@@ -135,18 +141,18 @@ class NavigateKitchen(Kitchen):
         
         # move to middle position 1
         if self.task_stage == 0:
-            Fx = self.pid_x.compute(current_value=base_pos[0], target_value=self.middle1_pos[0]) # ground coordinates
-            Fy = self.pid_y.compute(current_value=base_pos[1], target_value=self.middle1_pos[1])
+            action = self.pid_pos.compute(current_value=base_pos, target_value=self.middle1_pos)
+            Fx = action[0]
+            Fy = action[1]
             fx = Fx * np.cos(base_ori) + Fy * np.sin(base_ori) # robot coordinates
             fy = -Fx * np.sin(base_ori) + Fy * np.cos(base_ori)
             tz = 0
-            if np.linalg.norm(self.middle1_pos - base_pos) <= 0.10:
+            if np.linalg.norm(self.middle1_pos - base_pos) <= 0.05:
                 self.task_stage = 1
-                self.pid_x.reset()
-                self.pid_y.reset()
+                self.pid_pos.reset()
         
         # then turn the orientation
-        if self.task_stage == 1:
+        elif self.task_stage == 1:
             fx = 0
             fy = 0
             tz = self.pid_ori.compute(current_value=base_ori, target_value=target_ori)
@@ -155,21 +161,22 @@ class NavigateKitchen(Kitchen):
                 self.pid_ori.reset()
         
         # then move to middle position 2
-        if self.task_stage == 2:
-            Fx = self.pid_x.compute(current_value=base_pos[0], target_value=self.middle2_pos[0]) # ground coordinates
-            Fy = self.pid_y.compute(current_value=base_pos[1], target_value=self.middle2_pos[1])
+        elif self.task_stage == 2:
+            action = self.pid_pos.compute(current_value=base_pos, target_value=self.middle2_pos) # ground coordinates
+            Fx = action[0]
+            Fy = action[1]
             fx = Fx * np.cos(base_ori) + Fy * np.sin(base_ori) # robot coordinates
             fy = -Fx * np.sin(base_ori) + Fy * np.cos(base_ori)
             tz = 0
-            if np.linalg.norm(self.middle2_pos - base_pos) <= 0.10:
+            if np.linalg.norm(self.middle2_pos - base_pos) <= 0.05:
                 self.task_stage = 3
-                self.pid_x.reset()
-                self.pid_y.reset()
+                self.pid_pos.reset()
             
         # finally move to target position
-        if self.task_stage == 3:
-            Fx = self.pid_x.compute(current_value=base_pos[0], target_value=target_pos[0]) # ground coordinates
-            Fy = self.pid_y.compute(current_value=base_pos[1], target_value=target_pos[1])
+        elif self.task_stage == 3:
+            action = self.pid_pos.compute(current_value=base_pos, target_value=target_pos) # ground coordinates
+            Fx = action[0]
+            Fy = action[1]
             fx = Fx * np.cos(base_ori) + Fy * np.sin(base_ori) # robot coordinates
             fy = -Fx * np.sin(base_ori) + Fy * np.cos(base_ori)
             tz = 0 # self.pid_ori.compute(current_value=base_ori, target_value=target_ori)

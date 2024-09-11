@@ -150,7 +150,7 @@ class TwoAgentWashPnPSteam(TwoAgentKitchen):
         task1_success = self.task0_has_succeeded and water_on and self.vegetables_washed
         task2_success = self.task1_has_succeeded and not water_on
         
-        vegetables_in_place = OU.check_obj_in_receptacle(self, "vegetable", "container2")
+        vegetables_in_place = OU.check_obj_in_receptacle(self, "vegetable", "container1")
         
         task3_success = self.task2_has_succeeded and vegetables_in_place
         

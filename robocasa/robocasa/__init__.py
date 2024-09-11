@@ -392,6 +392,7 @@ from robocasa.environments.kitchen.multi_stage.restocking_supplies.beverage_sort
 
 # self designed one agent task
 from robocasa.environments.kitchen.designed.arrange_items import ArrangeItems # singletask
+from robocasa.environments.kitchen.designed.pnp_counter_to_counter import PnPCounterToCounter # singletask
 from robocasa.environments.kitchen.designed.open_microwave_pnp import OpenMicrowavePnP # multitask
 
 # self designed two agent task

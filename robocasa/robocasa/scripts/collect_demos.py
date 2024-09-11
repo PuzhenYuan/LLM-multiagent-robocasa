@@ -122,26 +122,6 @@ def collect_human_trajectory( # the most important function in robocasa
         else:
             nonzero_ac_seen = True
         
-        # grasp = input_info['grasp']
-        
-        # Change the active robot based on grasp infomation if there are two robots
-        # if last_grasp < 0 < grasp and env.num_robots == 2:
-        #     if active_robot == env.robots[0]: # change active robot to robot1
-        #         active_robot = env.robots[1]
-        #         if env.renderer == 'mujoco': # only works for mujoco renderer
-        #             camera_id = env.sim.model.camera_name2id('robot1_frontview')
-        #             env.viewer.set_camera(camera_id=camera_id)
-        #     elif active_robot == env.robots[1]: # change active robot to robot0
-        #         active_robot = env.robots[0]
-        #         if env.renderer == 'mujoco': # only works for mujoco renderer
-        #             camera_id = env.sim.model.camera_name2id('robot0_frontview')
-        #             env.viewer.set_camera(camera_id=camera_id)
-        #     else:
-        #         raise ValueError("Invalid active robot")
-        
-        # Update last info
-        # last_grasp = grasp
-        
         # Change the active robot based on 'c' key if there are two robots
         active_id = input_info['active_id']
         if env.num_robots == 2: # use 'c' to change active robot
@@ -200,9 +180,9 @@ def collect_human_trajectory( # the most important function in robocasa
             else:
                 raise ValueError("Invalid active robot")
 
-        # Uncomment to use optimal planner
-        # action = env.get_action(obs)
-        # print('action', action)
+        # Use optimal plannar if has get_control method
+        if hasattr(env, "get_control"):
+            action = env.get_control(obs)
         
         # Run environment step
         obs, reward, done, info = env.step(action)

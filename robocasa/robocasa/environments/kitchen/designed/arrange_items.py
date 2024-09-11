@@ -4,9 +4,6 @@ from robocasa.environments.kitchen.kitchen import *
 class ArrangeItems(Kitchen):
     def __init__(self, *args, **kwargs):
         super().__init__( *args, **kwargs)
-        layout = 7 # "G-shaped"
-        style = 1
-        self.layout_and_style_ids = [[layout, style]]
 
     def _setup_kitchen_references(self):
         super()._setup_kitchen_references()

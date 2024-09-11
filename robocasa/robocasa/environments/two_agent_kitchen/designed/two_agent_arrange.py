@@ -23,7 +23,8 @@ class TwoAgentArrange(TwoAgentKitchen):
 
     def get_ep_meta(self):
         ep_meta = super().get_ep_meta()
-        ep_meta["lang"] = f"agent1 pick the item(s) from the counter and place them on the cutting board"
+        ep_meta["lang"] = f"agent1 pick the can from the counter and place them on the cutting board, \
+                        agent0 pick the can from the cutting board and place them in the sink"
         return ep_meta
     
     def _reset_internal(self):
@@ -64,7 +65,7 @@ class TwoAgentArrange(TwoAgentKitchen):
         return cfgs    
 
     def _check_success(self):
-        item1_cutting_board_contact = OU.check_obj_in_receptacle(self, "item1", "cutting_board")
+        # item1_cutting_board_contact = OU.check_obj_in_receptacle(self, "item1", "cutting_board")
         gripper_obj_far = OU.gripper_obj_far(self, obj_name="cutting_board")
-
-        return item1_cutting_board_contact and gripper_obj_far
+        obj_in_sink = OU.obj_inside_of(self, "item1", self.sink)
+        return obj_in_sink and gripper_obj_far

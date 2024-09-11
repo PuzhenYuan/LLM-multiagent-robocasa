@@ -86,15 +86,16 @@ if __name__ == "__main__":
         ("PreSoakPan", "prepare pan for washing"),
         ("PrepareCoffee", "make coffee"),
         ("SteamInMicrowave", "steam food in microwave"), # added
-        ("NavigateKitchen", "navigation in the kitchen"), # added
+        ("NavigateKitchen", "navigation in the kitchen, " + colored("has default controller", "green")), # added
         ("MultistepSteaming", "multistep steaming"), # added
         
         # added, self designed
         ("ArrangeItems", "one agent arranges items in the kitchen, " + colored("one agent singletask", "yellow")), 
+        ("PnPCounterToCounter", "pick the object from the counter and place it in the plate, " + colored("one agent singletask, ", "yellow") + colored("has default controller", "green")),
         ("OpenMicrowavePnP", "open microwave door, pick the food and place it in the microwave, " + colored("one agent multitask", "yellow")),
-        ("TwoAgentArrange", "two agents arrange items in the kitchen, " + colored("two agents singletask", "yellow")),
-        ("TwoAgentSteamInMicrowave", "pick the vegetable and place it in the bowl, steam them in the microwave, " + colored("two agents singletask", "yellow")),
-        ("TwoAgentWashPnPSteam", "wash the vegetable in the sink, then pick and steam it in the microwave, " + colored("two agents multitask", "yellow")),
+        ("TwoAgentArrange", "two agents arrange items in the kitchen, " + colored("two agent singletask", "yellow")),
+        ("TwoAgentSteamInMicrowave", "pick the vegetable and place it in the bowl, steam them in the microwave, " + colored("two agent singletask", "yellow")),
+        ("TwoAgentWashPnPSteam", "wash the vegetable in the sink, then pick and steam it in the microwave, " + colored("two agent multitask", "yellow")),
     ])
 
     styles = OrderedDict()
