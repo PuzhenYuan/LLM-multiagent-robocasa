@@ -38,16 +38,25 @@ cd robocasa
 python robocasa/demos/multi_teleop_test.py 
 ```
 
+## Controller
+Default PID controllers for simgle-tasks:
+* NavigateKitchen
+* PnPCounterToCounter
+
+Can be called automatically in teleoperate script, facilitating demonstration collection for tasks which lack released mimicgen demonstrations.
+
 ## Validation
 `cd robomimic`
 
-1. Validate a single-task trained agent in the training environment. Use the standard way provided by robomimic project. 
+1. Validate a single-task trained agent in the training environment.
+Use the standard way provided by robomimic project. 
 ```
 python robomimic/scripts/run_trained_singletask_agent_template.py \
 --agent path/to/ckpt.pth
 ```
 
-2. Validate a single-task trained agent in a single-task one-agent environment. Can specify different environments and command languages.
+2. Validate a single-task trained agent in a single-task one-agent environment.
+Can specify different environments and command languages.
 ```
 python robomimic/scripts/run_trained_singletask_agent.py \
 --agent path/to/ckpt.pth \
@@ -55,7 +64,8 @@ python robomimic/scripts/run_trained_singletask_agent.py \
 --env_lang "task_lang"
 ```
 
-3. Validate a single-task trained agent in a multi-task one-agent environment. Can specify different environments and command languages.
+3. Validate a single-task trained agent in a multi-task one-agent environment.
+Can specify different environments and command languages.
 ```
 python robomimic/scripts/run_trained_multitask_agent.py \
 --agent path/to/ckpt.pth \
@@ -63,9 +73,30 @@ python robomimic/scripts/run_trained_multitask_agent.py \
 --env_lang "task0_lang, task1_lang" # follow this format
 ```
 
-4. Validate a single-task trained agent in a multi-task two-agent environment. Can specify different environments and command languages.
+4. Validate a single-task trained agent in a multi-task one-agent environment.
+Can specify different environments and command languages.
+Directly reset the joint positions of the robot arm in simulation data whenever a task is completed.
+```
+python robomimic/scripts/run_trained_multitask_agent_reset.py \
+--agent path/to/ckpt.pth \
+--env multitask_oneagent_env \
+--env_lang "task0_lang, task1_lang" # follow this format
+```
+
+5. Validate a single-task trained agent in a multi-task two-agent environment.
+Can specify different environments and command languages.
 ```
 python robomimic/scripts/run_trained_multitask_twoagent.py \
+--agent path/to/ckpt.pth \
+--env multitask_twoagent_env \
+--env_lang "agent0 task0_lang, agent1 task1_lang" # follow this format
+```
+
+6. Validate a single-task trained agent in a multi-task two-agent environment.
+Can specify different environments and command languages.
+Directly reset the joint positions of the robot arm in simulation data whenever a task is completed.
+```
+python robomimic/scripts/run_trained_multitask_twoagent_reset.py \
 --agent path/to/ckpt.pth \
 --env multitask_twoagent_env \
 --env_lang "agent0 task0_lang, agent1 task1_lang" # follow this format
