@@ -31,6 +31,9 @@ from tianshou.env import SubprocVectorEnv
 
 import robosuite
 from robosuite import load_controller_config
+import robosuite.utils.transform_utils as T
+
+import robocasa.utils.control_utils as CU
 
 def batchify_obs(obs_list):
     """
@@ -97,12 +100,74 @@ def run_rollout_multitask_policy(
     
     horizon_reached = False
     
+    # record
+    arm_need_reset = False
+    init_eef_pos = ob_dict['robot0_eef_pos'][0]
+    init_eef_mat = T.quat2mat(ob_dict['robot0_eef_quat'][0])
+    
     for task_i in range(task_num):
-        policy.set_language(lang=lang_list[task_i]) # change to policy.start_episode(lang=lang_list[task_i])?
+        policy.set_language(lang=lang_list[task_i])
+        # policy.start_episode(lang=lang_list[task_i])
         
         if verbose:
             print('Begin task{}: {}'.format(task_i, lang_list[task_i]))
+        
         for step_i in range(horizon): #LogUtils.tqdm(range(horizon)):
+            
+            if arm_need_reset:
+                if batched:
+                    raise NotImplementedError
+                else:
+                    
+                    # reset the robot arm position by changing the simulation date
+                    initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
+                    env.env.env.robots[0].set_robot_joint_positions(initial_qpos)
+                    arm_need_reset = False
+                    continue
+                    
+                    # reset the robot arm position by PID controller
+                    # base_ori = T.mat2euler(T.quat2mat(ob_dict['robot0_base_quat'][0]))[2]
+                    
+                    # # position control
+                    # eef_pos = ob_dict['robot0_eef_pos'][0]
+                    # target_pos = init_eef_pos
+                    
+                    # action_pos = CU.pid_eef_pos_ctlr.compute(current_value=eef_pos, target_value=target_pos)
+                    # Fx = action_pos[0]
+                    # Fy = action_pos[1]
+                    # Fz = action_pos[2]
+                    # fx = Fx * np.cos(base_ori) + Fy * np.sin(base_ori) # robot coordinates
+                    # fy = -Fx * np.sin(base_ori) + Fy * np.cos(base_ori)
+                    # action_pos = np.array([fx, fy, Fz])
+                    
+                    # # orientation control
+                    # eef_wrt_world_mat = T.quat2mat(ob_dict['robot0_eef_quat'][0])
+                    # target_eef_wrt_world_mat = init_eef_mat
+                    # error_mat = target_eef_wrt_world_mat @ eef_wrt_world_mat.T
+                    # error_axisangle = T.quat2axisangle(T.mat2quat(error_mat))
+                    
+                    # action_axisangle = CU.pid_eef_axisangle_ctlr.compute(error=error_axisangle)
+                    # Tx = action_axisangle[0]
+                    # Ty = action_axisangle[1]
+                    # Tz = action_axisangle[2]
+                    # tx = Tx * np.cos(base_ori) + Ty * np.sin(base_ori)
+                    # ty = -Tx * np.sin(base_ori) + Ty * np.cos(base_ori)
+                    # action_axisangle = np.array([tx, ty, Tz])
+                    
+                    # ac = np.concatenate((action_pos, action_axisangle, np.array([1, 0, 0, 0, 0, -1])), axis=0)
+            
+                    # if np.linalg.norm(eef_pos - target_pos) < 0.01:
+                        
+                    #     if verbose:
+                    #         print('Reset arm position')
+                            
+                    #     # record
+                    #     has_reset_arm = True
+                    #     init_eef_pos = ob_dict['robot0_eef_pos'][0]
+                    #     init_eef_mat = T.quat2mat(ob_dict['robot0_eef_quat'][0])
+                    #     CU.pid_eef_pos_ctlr.reset()
+                    #     CU.pid_eef_axisangle_ctlr.reset()
+            
             # get action from policy
             if batched:
                 policy_ob = batchify_obs(ob_dict)
@@ -110,13 +175,13 @@ def run_rollout_multitask_policy(
             else:
                 policy_ob = ob_dict
                 ac = policy(ob=policy_ob, goal=goal_dict) #, return_ob=True)
-
+                
             # play action
             ob_dict, r, done, info = env.step(ac)
 
             # render to screen
             if render:
-                env.render(mode="human")
+                env.render(mode="human") # can change camera here, or by default the first camera in camera list
 
             # compute reward
             rews.append(r)
@@ -186,6 +251,7 @@ def run_rollout_multitask_policy(
                         end_step = step_i
                     else:
                         end_step += step_i
+                    arm_need_reset = True
                     break
             
             if step_i == horizon - 1:
@@ -274,8 +340,8 @@ def run_trained_multitask_agent(args):
     #     verbose=True,
     # )
     
-    # args.renderer = "mujoco"
-    args.renderer = "mjviewer"
+    args.renderer = "mujoco"
+    # args.renderer = "mjviewer"
     
     # initialize env_kwargs, maybe need more keys, if raise error, refer to multi_teleop_test.py
     env_kwargs = {
@@ -291,7 +357,7 @@ def run_trained_multitask_agent(args):
         "use_camera_obs": False,
         "control_freq": 20,
         "renderer": args.renderer,
-        "camera_names": ["robot0_agentview_left", "robot0_agentview_right", "robot0_eye_in_hand"],
+        "camera_names": ["robot0_agentview_center"] + ["robot0_agentview_left", "robot0_agentview_right", "robot0_eye_in_hand"],
         "camera_heights": 128,
         "camera_widths": 128,
         "translucent_robot": False,
@@ -481,7 +547,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_rollouts",
         type=int,
-        default=1,
+        default=20,
         help="number of rollouts",
     )
 
@@ -562,7 +628,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--verbose",
         type=bool,
-        default=False, # None by default
+        default=True, # None by default
         help="(optional) debug for rollouts",
     )
     

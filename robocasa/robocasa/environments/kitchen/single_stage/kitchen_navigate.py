@@ -1,24 +1,9 @@
 from robocasa.environments.kitchen.kitchen import *
 import robocasa.macros_private as macros # use private macros to debug
 
-class PIDController:
-    def __init__(self, kp, ki, kd):
-        self.kp = kp
-        self.ki = ki
-        self.kd = kd
-        self.integral = None
-        self.previous_error = None
+# for controller usage
+import robocasa.utils.control_utils as CU
 
-    def compute(self, current_value, target_value):
-        error = target_value - current_value
-        self.integral = error if self.integral is None else self.integral + error
-        derivative = 0 if self.previous_error is None else (error - self.previous_error)
-        self.previous_error = error
-        return self.kp * error + self.ki * self.integral + self.kd * derivative
-    
-    def reset(self):
-        self.integral = None
-        self.previous_error = None
 
 class NavigateKitchen(Kitchen):
     def __init__(self, *args, **kwargs):
@@ -29,20 +14,7 @@ class NavigateKitchen(Kitchen):
         self.init_pos = None
         self.middle1_pos = None
         self.middle2_pos = None
-        
-        # PID controller parameters
-        kp_pos = 4.0
-        ki_pos = 0.01
-        kd_pos = 0.01
-        kp_ori = 1.5
-        ki_ori = 0.05
-        kd_ori = 0
-
-        # create pid controllers
-        self.pid_x = PIDController(kp=kp_pos, ki=ki_pos, kd=kd_pos)
-        self.pid_y = PIDController(kp=kp_pos, ki=ki_pos, kd=kd_pos)
-        self.pid_pos = PIDController(kp=kp_pos, ki=ki_pos, kd=kd_pos)
-        self.pid_ori = PIDController(kp=kp_ori, ki=ki_ori, kd=kd_ori)
+        CU.reset_controller()
         
         super().__init__(*args, **kwargs)
     
@@ -54,10 +26,7 @@ class NavigateKitchen(Kitchen):
         self.init_pos = None
         self.middle1_pos = None
         self.middle2_pos = None
-        self.pid_x.reset()
-        self.pid_y.reset()
-        self.pid_pos.reset()
-        self.pid_ori.reset()
+        CU.reset_controller()
 
     def _setup_kitchen_references(self):
         super()._setup_kitchen_references()
@@ -141,48 +110,36 @@ class NavigateKitchen(Kitchen):
         
         # move to middle position 1
         if self.task_stage == 0:
-            action = self.pid_pos.compute(current_value=base_pos, target_value=self.middle1_pos)
-            Fx = action[0]
-            Fy = action[1]
-            fx = Fx * np.cos(base_ori) + Fy * np.sin(base_ori) # robot coordinates
-            fy = -Fx * np.sin(base_ori) + Fy * np.cos(base_ori)
-            tz = 0
+            action = CU.pid_base_pos_ctlr.compute(current_value=base_pos, target_value=self.middle1_pos)
+            action = CU.map_action(action, base_ori) # 2-dim
+            action = CU.create_action(base_pos=action)
             if np.linalg.norm(self.middle1_pos - base_pos) <= 0.05:
                 self.task_stage = 1
-                self.pid_pos.reset()
+                CU.pid_base_pos_ctlr.reset()
         
         # then turn the orientation
         elif self.task_stage == 1:
-            fx = 0
-            fy = 0
-            tz = self.pid_ori.compute(current_value=base_ori, target_value=target_ori)
+            tz = CU.pid_base_ori_ctlr.compute(current_value=base_ori, target_value=target_ori)
+            action = CU.map_action(tz, base_ori) # 1-dim
+            action = CU.create_action(base_ori=action)
             if np.cos(target_ori - base_ori) >= 0.998:
-                self.task_stage = 2
-                self.pid_ori.reset()
+                self.task_stage += 1
+                CU.pid_base_ori_ctlr.reset()
         
         # then move to middle position 2
         elif self.task_stage == 2:
-            action = self.pid_pos.compute(current_value=base_pos, target_value=self.middle2_pos) # ground coordinates
-            Fx = action[0]
-            Fy = action[1]
-            fx = Fx * np.cos(base_ori) + Fy * np.sin(base_ori) # robot coordinates
-            fy = -Fx * np.sin(base_ori) + Fy * np.cos(base_ori)
-            tz = 0
+            action = CU.pid_base_pos_ctlr.compute(current_value=base_pos, target_value=self.middle2_pos) # ground coordinates
+            action = CU.map_action(action, base_ori) # 2-dim
+            action = CU.create_action(base_pos=action)
             if np.linalg.norm(self.middle2_pos - base_pos) <= 0.05:
-                self.task_stage = 3
-                self.pid_pos.reset()
+                self.task_stage += 1
+                CU.pid_base_pos_ctlr.reset()
             
         # finally move to target position
         elif self.task_stage == 3:
-            action = self.pid_pos.compute(current_value=base_pos, target_value=target_pos) # ground coordinates
-            Fx = action[0]
-            Fy = action[1]
-            fx = Fx * np.cos(base_ori) + Fy * np.sin(base_ori) # robot coordinates
-            fy = -Fx * np.sin(base_ori) + Fy * np.cos(base_ori)
-            tz = 0 # self.pid_ori.compute(current_value=base_ori, target_value=target_ori)
-
-        # construct action array
-        action = np.array([0, 0, 0, 0, 0, 0, -1, fx, fy, tz, 0, -1])
+            action = CU.pid_base_pos_ctlr.compute(current_value=base_pos, target_value=target_pos) # ground coordinates
+            action = CU.map_action(action, base_ori) # 2-dim
+            action = CU.create_action(base_pos=action)
         
         if macros.VERBOSE:
             print('base pos', base_pos)
