@@ -32,17 +32,6 @@ from tianshou.env import SubprocVectorEnv
 import robosuite
 from robosuite import load_controller_config
 
-def batchify_obs(obs_list):
-    """
-    TODO: add comments
-    """
-    keys = list(obs_list[0].keys())
-    obs = {
-        k: np.stack([obs_list[i][k] for i in range(len(obs_list))]) for k in keys
-    }
-    
-    return obs
-
 
 def run_rollout_multitask_twoagent(
         policy_list, 
@@ -59,8 +48,6 @@ def run_rollout_multitask_twoagent(
 
     assert isinstance(policy_list, list) # list of rollout policies
     assert isinstance(env, EnvBase) or isinstance(env, EnvWrapper) or isinstance(env, SubprocVectorEnv)
-
-    batched = isinstance(env, SubprocVectorEnv)
 
     ob_dict = env.reset()
     
@@ -97,15 +84,9 @@ def run_rollout_multitask_twoagent(
     rews = []
     success = { k: False for k in env.is_success() } # success metrics
 
-    if batched:
-        end_step = [None for _ in range(len(env))]
-    else:
-        end_step = None
+    end_step = None
 
-    if batched:
-        video_frames = [[] for _ in range(len(env))]
-    else:
-        video_frames = []
+    video_frames = []
     
     horizon_reached = False
     
@@ -130,37 +111,26 @@ def run_rollout_multitask_twoagent(
         for step_i in range(horizon): #LogUtils.tqdm(range(horizon)):
             
             if arm_need_reset:
-                if batched:
-                    raise NotImplementedError
-                else:
-                    
-                    # reset the robot arm position by changing the simulation date
-                    initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
-                    env.env.env.robots[0].set_robot_joint_positions(initial_qpos)
-                    arm_need_reset = False
-                    continue
-            
+                # reset the robot arm position by changing the simulation date
+                initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
+                env.env.env.robots[0].set_robot_joint_positions(initial_qpos)
+                env.env.env.robots[1].set_robot_joint_positions(initial_qpos)
+                arm_need_reset = False
+                continue
             
             # get action from policy
-            if batched:
-                policy_ob = batchify_obs(ob_dict)
-                ac = policy(ob=policy_ob, goal=goal_dict, batched=True) #, return_ob=True)
-            else:
-                policy_ob = ob_dict
-                ac = policy(ob=policy_ob, goal=goal_dict) #, return_ob=True)
+            policy_ob = ob_dict
+            ac = policy(ob=policy_ob, goal=goal_dict) #, return_ob=True)
 
             # fill necessary zero actions
-            if batched:
-                raise NotImplementedError
+            if lang_list[task_i].startswith("agent0"):
+                zero_action = np.array([0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1])
+                ac = np.concatenate((ac, zero_action), axis=0)
+            elif lang_list[task_i].startswith("agent1"):
+                zero_action = np.array([0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1])
+                ac = np.concatenate((zero_action, ac), axis=0)
             else:
-                if lang_list[task_i].startswith("agent0"):
-                    zero_action = np.array([0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1])
-                    ac = np.concatenate((ac, zero_action), axis=0)
-                elif lang_list[task_i].startswith("agent1"):
-                    zero_action = np.array([0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1])
-                    ac = np.concatenate((zero_action, ac), axis=0)
-                else:
-                    raise ValueError("Language command must start with 'agent0' or 'agent1'")
+                raise ValueError("Language command must start with 'agent0' or 'agent1'")
             
             # play action
             ob_dict, r, done, info = env.step(ac)
@@ -173,11 +143,7 @@ def run_rollout_multitask_twoagent(
             rews.append(r)
 
             # cur_success_metrics = env.is_success()
-            if batched:
-                cur_success_metrics = TensorUtils.list_of_flat_dict_to_dict_of_list([info[i]["is_success"] for i in range(len(info))])
-                cur_success_metrics = {k: np.array(v) for (k, v) in cur_success_metrics.items()}
-            else:
-                cur_success_metrics = info["is_success"]
+            cur_success_metrics = info["is_success"]
 
             if success is None:
                 success = deepcopy(cur_success_metrics)
@@ -188,57 +154,19 @@ def run_rollout_multitask_twoagent(
             # visualization
             if video_writer is not None:
                 if video_count % video_skip == 0:
-                    if batched:
-                        # frames = env.render(mode="rgb_array", height=video_height, width=video_width)
-                        
-                        frames = []
-                        policy_ob = deepcopy(policy_ob)
-                        for env_i in range(len(env)):
-                            cam_imgs = []
-                            for im_name in ["robot0_agentview_left_image", "robot0_agentview_right_image", "robot0_eye_in_hand_image"]:
-                                im = TensorUtils.to_numpy(
-                                    policy_ob[im_name][env_i, -1]
-                                )
-                                im = np.transpose(im, (1, 2, 0))
-                                if policy_ob.get("ret", None) is not None:
-                                    im_ret = TensorUtils.to_numpy(
-                                        policy_ob["ret"]["obs"][im_name][env_i,:,-1]
-                                    )
-                                    im_ret = np.transpose(im_ret, (0, 2, 3, 1))
-                                    im = np.concatenate((im, *im_ret), axis=0)
-                                cam_imgs.append(im)
-                            frame = np.concatenate(cam_imgs, axis=1)
-                            frame = (frame * 255.0).astype(np.uint8)
-                            frames.append(frame)
-                        
-                        for env_i in range(len(env)):
-                            frame = frames[env_i]
-                            video_frames[env_i].append(frame)
-                    else:
-                        frame = env.render(mode="rgb_array", height=512, width=512)
-                        video_frames.append(frame)
+                    frame = env.render(mode="rgb_array", height=512, width=512)
+                    video_frames.append(frame)
 
                 video_count += 1
 
             # break if done
-            if batched:
-                for env_i in range(len(env)):
-                    if end_step[env_i] is not None:
-                        continue
-                    
-                    if done[env_i] or (terminate_on_success and success["task{}".format(task_i)][env_i]):
-                        if task_i == 0:
-                            end_step[env_i] = step_i
-                        else:
-                            end_step[env_i] += step_i
-            else:
-                if done or (terminate_on_success and success["task{}".format(task_i)]):
-                    if task_i == 0:
-                        end_step = step_i
-                    else:
-                        end_step += step_i
-                    arm_need_reset = True
-                    break
+            if done or (terminate_on_success and success["task{}".format(task_i)]):
+                if task_i == 0:
+                    end_step = step_i
+                else:
+                    end_step += step_i
+                arm_need_reset = True
+                break
             
             if step_i == horizon - 1:
                 horizon_reached = True
@@ -258,40 +186,20 @@ def run_rollout_multitask_twoagent(
 
     # post process, write video, calculate returns, etc.
     if video_writer is not None:
-        if batched:
-            for env_i in range(len(video_frames)):
-                for frame in video_frames[env_i]:
-                    video_writer.append_data(frame)
-        else:
-            for frame in video_frames:
-                video_writer.append_data(frame)
+        for frame in video_frames:
+            video_writer.append_data(frame)
 
-    if batched:
-        total_reward = np.zeros(len(env))
-        rews = np.array(rews)
-        for env_i in range(len(env)):
-            end_step_env_i = end_step[env_i] or step_i
-            total_reward[env_i] = np.sum(rews[:end_step_env_i+1, env_i])
-            end_step[env_i] = end_step_env_i
-        
-        results["Return"] = total_reward
-        results["Horizon"] = np.array(end_step) + 1
-        results["Success_Rate"] = success["task"].astype(float)
-    else:
-        end_step = end_step or step_i
-        total_reward = np.sum(rews[:end_step + 1])
-        
-        results["Return"] = total_reward
-        results["Horizon"] = end_step + 1
-        results["Success_Rate"] = float(success["task"])
+    end_step = end_step or step_i
+    total_reward = np.sum(rews[:end_step + 1])
+    
+    results["Return"] = total_reward
+    results["Horizon"] = end_step + 1
+    results["Success_Rate"] = float(success["task"])
 
     # log additional success metrics
     for k in success:
         if k != "task":
-            if batched:
-                results["{}_Success_Rate".format(k)] = success[k].astype(float)
-            else:
-                results["{}_Success_Rate".format(k)] = float(success[k])
+            results["{}_Success_Rate".format(k)] = float(success[k])
 
     return results
 
@@ -318,15 +226,6 @@ def run_trained_multitask_twoagent(args):
         # read horizon from config
     config0, _ = FileUtils.config_from_checkpoint(ckpt_dict=ckpt_dict0)
     config1, _ = FileUtils.config_from_checkpoint(ckpt_dict=ckpt_dict1)
-
-    # create environment from saved checkpoint
-    # env, _ = FileUtils.env_from_checkpoint(
-    #     ckpt_dict=ckpt_dict, 
-    #     env_name=args.env, 
-    #     render=args.render, 
-    #     render_offscreen=(args.video_path is None), 
-    #     verbose=True,
-    # )
     
     assert args.env.startswith("TwoAgent") # only support two agent tasks
     
@@ -374,14 +273,7 @@ def run_trained_multitask_twoagent(args):
         np.random.seed(args.seed)
         torch.manual_seed(args.seed)
 
-    # can choose to use logger, but need to change paths
-    # data_logger = DataLogger(
-    #     log_dir,
-    #     config,
-    #     log_tb=config.experiment.logging.log_tb,
-    #     log_wandb=config.experiment.logging.log_wandb,
-    # )
-    # data_logger = PrintLogger(os.path.join(log_dir, 'log.txt'))
+    # can choose to use logger
     data_logger = None
 
     # -------------------------------------------- copied from TrainUtils.rollout_with_stats() --------------------------------------------- #
@@ -412,12 +304,8 @@ def run_trained_multitask_twoagent(args):
         horizon_list = [horizon]
 
     for env, horizon in zip(envs, horizon_list):
-        batched = isinstance(env, SubprocVectorEnv)
 
-        if batched:
-            env_name = env.get_env_attr(key="name", id=0)[0]
-        else:
-            env_name = env.name
+        env_name = env.name
 
         if video_dir is not None:
             # video is written per env
@@ -434,10 +322,8 @@ def run_trained_multitask_twoagent(args):
             env_name, horizon, use_goals, num_episodes,
         ))
         rollout_logs = []
-        if batched:
-            iterator = range(0, num_episodes, len(env))
-        else:
-            iterator = range(num_episodes)
+        
+        iterator = range(num_episodes)
         if not verbose:
             iterator = LogUtils.custom_tqdm(iterator, total=num_episodes)
 
@@ -464,21 +350,12 @@ def run_trained_multitask_twoagent(args):
                 print(traceback.format_exc())
                 break
             
-            if batched:
-                rollout_info["time"] = [(time.time() - rollout_timestamp) / len(env)] * len(env)
+            rollout_info["time"] = time.time() - rollout_timestamp
 
-                for env_i in range(len(env)):
-                    rollout_logs.append({k: rollout_info[k][env_i] for k in rollout_info})
-                num_success += np.sum(rollout_info["Success_Rate"])
-            else:
-                rollout_info["time"] = time.time() - rollout_timestamp
-
-                rollout_logs.append(rollout_info)
-                num_success += rollout_info["Success_Rate"]
+            rollout_logs.append(rollout_info)
+            num_success += rollout_info["Success_Rate"]
             
             if verbose:
-                if batched:
-                    raise NotImplementedError
                 print("Episode {}, horizon={}, num_success={}".format(ep_i + 1, horizon, num_success))
                 # print(json.dumps(rollout_info, sort_keys=True, indent=4))
 
