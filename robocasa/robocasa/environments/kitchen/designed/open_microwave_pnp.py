@@ -5,7 +5,7 @@ class OpenMicrowavePnP(Kitchen):
     EXCLUDE_LAYOUTS = [8]
     def __init__(
         self, 
-        obj_groups="food", 
+        obj_groups="vegetable", 
         exclude_obj_groups=None,
         *args, 
         **kwargs

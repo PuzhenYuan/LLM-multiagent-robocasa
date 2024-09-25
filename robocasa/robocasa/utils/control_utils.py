@@ -24,8 +24,8 @@ class PIDController:
         self.integral = None
         self.previous_error = None
 
-# global PID controller parameters
-kp_base_pos = 4.0
+# global PID controller parameters, TODO: further tune these parameters
+kp_base_pos = 5.0
 ki_base_pos = 0.01
 kd_base_pos = 0.01
 
@@ -86,8 +86,9 @@ def map_action(action, base_ori=None):
     else:
         raise ValueError
 
+last_grasp = False
 
-def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None, grasp=False):
+def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None, grasp=None):
     """
     Create action vector for mobile robot control.
 
@@ -96,7 +97,7 @@ def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None
         eef_axisangle (np.array, optional): eef axisangle action. Defaults to None.
         base_pos (np.array, optional): base pos action. Defaults to None.
         base_ori (np.array, optional): base ori action. Defaults to None.
-        grasp (bool, optional): whether to grasp. Defaults to False.
+        grasp (bool, optional): whether to grasp. Defaults to None.
 
     Returns:
         np.array: action vector
@@ -106,9 +107,18 @@ def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None
     eef_axisangle = np.zeros(3) if eef_axisangle is None else eef_axisangle
     base_pos = np.zeros(2) if base_pos is None else base_pos
     base_ori = np.zeros(1) if base_ori is None else base_ori
-    grasp = np.array([1]) if grasp else np.array([-1])
+    
+    global last_grasp # change to a class?
+    
+    if grasp == None:
+        assert last_grasp != None
+        grasp_action = np.array([1]) if last_grasp else np.array([-1])
+    else:
+        assert grasp == True or grasp == False
+        last_grasp = grasp
+        grasp_action = np.array([1]) if grasp else np.array([-1])
         
-    action = np.concatenate((eef_pos, eef_axisangle, grasp, base_pos, base_ori, np.array([0, -1])), axis=0)
+    action = np.concatenate((eef_pos, eef_axisangle, grasp_action, base_pos, base_ori, np.array([0, -1])), axis=0)
 
     assert action.shape[0] == 12
     return action
@@ -122,3 +132,11 @@ def reset_controller():
     pid_base_ori_ctlr.reset()
     pid_eef_pos_ctlr.reset()
     pid_eef_axisangle_ctlr.reset()
+
+
+if __name__ == '__main__':
+    print(create_action())
+    print(create_action(grasp=True))
+    print(create_action())
+    print(create_action(grasp=False))
+    print(create_action())

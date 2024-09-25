@@ -423,7 +423,7 @@ def policy_from_checkpoint(device=None, ckpt_path=None, ckpt_dict=None, verbose=
     config, _ = config_from_checkpoint(algo_name=algo_name, ckpt_dict=ckpt_dict, verbose=verbose)
 
     # read config to set up metadata for observation modalities (e.g. detecting rgb observations)
-    ObsUtils.initialize_obs_utils_with_config(config)
+    ObsUtils.initialize_obs_utils_with_config(config, verbose=verbose)
 
     # shape meta from model dict to get info needed to create model
     shape_meta = ckpt_dict["shape_metadata"]

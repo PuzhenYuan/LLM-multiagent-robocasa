@@ -31,12 +31,11 @@ from tianshou.env import SubprocVectorEnv
 
 import robosuite
 from robosuite import load_controller_config
-import robosuite.utils.transform_utils as T
 
 import robocasa.utils.control_utils as CU
 
 
-def run_rollout_multitask_policy(
+def run_rollout_multitask_agent(
         policy, 
         env, 
         horizon,
@@ -81,9 +80,6 @@ def run_rollout_multitask_policy(
     
     horizon_reached = False
     
-    # record
-    arm_need_reset = False
-    
     for task_i in range(task_num):
         policy.set_language(lang=lang_list[task_i])
         # policy.start_episode(lang=lang_list[task_i])
@@ -92,13 +88,6 @@ def run_rollout_multitask_policy(
             print('Begin task{}: {}'.format(task_i, lang_list[task_i]))
         
         for step_i in range(horizon): #LogUtils.tqdm(range(horizon)):
-            
-            if arm_need_reset:
-                # reset the robot arm position by changing the simulation date
-                initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
-                env.env.env.robots[0].set_robot_joint_positions(initial_qpos)
-                arm_need_reset = False
-                continue
             
             # get action from policy
             policy_ob = ob_dict
@@ -138,7 +127,12 @@ def run_rollout_multitask_policy(
                     end_step = step_i
                 else:
                     end_step += step_i
-                arm_need_reset = True
+                
+                # reset arm to initial position and orientation
+                initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
+                env.env.env.robots[0].set_robot_joint_positions(initial_qpos)
+                ac = CU.create_action(grasp=False)
+                ob_dict, r, done, info = env.step(ac)
                 break
             
             if step_i == horizon - 1:
@@ -199,8 +193,8 @@ def run_trained_multitask_agent(args):
         # read horizon from config
     config, _ = FileUtils.config_from_checkpoint(ckpt_dict=ckpt_dict)
     
-    args.renderer = "mujoco"
-    # args.renderer = "mjviewer"
+    # args.renderer = "mujoco" # off-screen render, and write to video
+    # args.renderer = "mjviewer" # on-screen render
     
     # initialize env_kwargs, maybe need more keys, if raise error, refer to multi_teleop_test.py
     env_kwargs = {
@@ -211,7 +205,7 @@ def run_trained_multitask_agent(args):
         "style_ids": None,
         "has_renderer": (args.renderer != "mjviewer"),
         "has_offscreen_renderer": False,
-        "render_camera": "robot0_agentview_center", # important, which camera to be used, "robot0_frontview" by default
+        "render_camera": None, # "robot0_agentview_center", # important, which camera to be used, "robot0_frontview" by default
         "ignore_done": True,
         "use_camera_obs": False,
         "control_freq": 20,
@@ -302,7 +296,7 @@ def run_trained_multitask_agent(args):
             if verbose:
                 print("\nStarting episode {}...".format(ep_i + 1))
             try:
-                rollout_info = run_rollout_multitask_policy(
+                rollout_info = run_rollout_multitask_agent(
                     policy=policy,
                     env=env,
                     horizon=horizon,
@@ -469,11 +463,22 @@ if __name__ == "__main__":
         help="(optional) debug for rollouts",
     )
     
-    # manually assign environment language for 
+    # manually assign environment language
     parser.add_argument(
         "--env_lang",
         type=str,
         default=None, # None by default, should be like "task0_lang, task1_lang, ..."
+        help="(optional) set language condition",
+    )
+    
+    # set renderer: "mujoco" or "mjviewer"
+    # "mujoco": off-screen render with fixed camera, and write to video
+    # "mjviewer": on-screen render with more function, can toggle camera
+    parser.add_argument(
+        "--renderer",
+        type=str,
+        default="mujoco",
+        choices=["mujoco", "mjviewer"],
         help="(optional) set seed for rollouts",
     )
 

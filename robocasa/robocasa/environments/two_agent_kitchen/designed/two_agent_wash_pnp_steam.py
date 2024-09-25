@@ -161,7 +161,8 @@ class TwoAgentWashPnPSteam(TwoAgentKitchen):
                 microwave_door_open = False
                 break
         
-        task4_success = self.task3_has_succeeded and microwave_door_open
+        # task4_success = self.task3_has_succeeded and microwave_door_open
+        task4_success = microwave_door_open
         
         obj_container_contact = self.check_contact(obj, container2)
         container_micro_contact = self.check_contact(container2, self.microwave)

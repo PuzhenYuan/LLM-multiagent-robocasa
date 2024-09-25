@@ -104,7 +104,7 @@ class PnPCounterToCounter(Kitchen):
             
             action = CU.pid_base_pos_ctlr.compute(current_value=base_pos, target_value=target_pos) # ground coordinates
             action = CU.map_action(action, base_ori) # 2-dim
-            action = CU.create_action(base_pos=action)
+            action = CU.create_action(base_pos=action, grasp=False)
             
             if np.linalg.norm(base_pos - target_pos) < 0.05:
                 self.task_stage += 1
@@ -144,7 +144,7 @@ class PnPCounterToCounter(Kitchen):
             action_axisangle = CU.pid_eef_axisangle_ctlr.compute(error=error_axisangle)
             action_axisangle = CU.map_action(action_axisangle, base_ori) # 3-dim
 
-            action = CU.create_action(eef_pos=action_pos, eef_axisangle=action_axisangle)
+            action = CU.create_action(eef_pos=action_pos, eef_axisangle=action_axisangle, grasp=False)
             
             if np.linalg.norm(eef_pos - target_pos) < 0.01:
                 self.task_stage += 1
@@ -255,7 +255,7 @@ class PnPCounterToCounter(Kitchen):
             action_axisangle = CU.pid_eef_axisangle_ctlr.compute(error=error_axisangle)
             action_axisangle = CU.map_action(action_axisangle, base_ori) # 3-dim
             
-            action = CU.create_action(eef_pos=action_pos, eef_axisangle=action_axisangle)
+            action = CU.create_action(eef_pos=action_pos, eef_axisangle=action_axisangle, grasp=False)
             
             if np.linalg.norm(eef_pos - target_pos) < 0.01:
                 self.task_stage += 1
