@@ -73,6 +73,7 @@ def run_controlled_rollout_multitask_agent(
     device = TorchUtils.get_torch_device(try_to_use_cuda=True)
     
     horizon_reached = False
+    task_i = -1
     
     policy = None
     planner = None
@@ -83,11 +84,18 @@ def run_controlled_rollout_multitask_agent(
         ac = CU.create_action()
         ob_dict, r, done, info = env.step(ac)
     
-    task_i = -1
+    print(colored("\nAvailable objects in env {}:".format(type(env.env.env).__name__), "yellow"))
+    for key in env.env.env.objects.keys():
+        print(key)
+    print(colored("\nAvailable command in controller dict:", "yellow"))
+    for key in CD.controller_dict.keys():
+        print(key)
+    print()
+    
     while True:
         task_i += 1
         
-        lang_command = input(colored("please enter command for task {}:\n".format(task_i), "yellow"))
+        lang_command = input(colored("Please enter command for task {}:\n".format(task_i), "yellow"))
         
         if lang_command == "reset arm":
             initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
