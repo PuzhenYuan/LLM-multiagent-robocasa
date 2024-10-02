@@ -36,18 +36,27 @@ class NavigationPlanner:
                 ]
             ]
             while True:
-                env.target_fixture = env.rng.choice(fixtures)
-                fxtr_class = type(env.target_fixture).__name__
+                self.target_fixture = env.rng.choice(fixtures)
+                fxtr_class = type(self.target_fixture).__name__
                 if fxtr_class not in valid_target_fxtr_classes:
                     continue
                 break
                 
-            self.target_pos, self.target_ori = env.compute_robot_base_placement_pose(env.target_fixture)
+            self.target_pos, self.target_ori = env.compute_robot_base_placement_pose(self.target_fixture)
     
         # navigate to the given fixture or item
         else:
-            fixture_keys = env.fixtures.keys()
             object_keys = env.objects.keys()
+            
+            fixtures = list(env.fixtures.values())
+            fxtr_classes = [type(fxtr).__name__ for fxtr in fixtures]
+            valid_target_fxtr_classes = [
+                cls for cls in fxtr_classes if fxtr_classes.count(cls) == 1 and cls in [
+                    "CoffeeMachine", "Toaster", "Stove", "Stovetop", "OpenCabinet",
+                    "Microwave", "Sink", "Hood", "Oven", "Fridge", "Dishwasher",
+                ]
+            ]
+            fixture_keys = [fxtr.lower() for fxtr in valid_target_fxtr_classes]
             
             if extra_para in object_keys: # navigate to the given object
                 obj_str = extra_para # obj_str should be one of the names in env._get_obj_cfgs()
@@ -55,14 +64,14 @@ class NavigationPlanner:
                 obj.pos = obs[obj_str + '_pos'] # pos
                 self.target_pos, self.target_ori = env.compute_robot_base_placement_pose(obj)
                 
-            elif extra_para in fixture_keys: # navigate to the given fixture, not all fixtures are supported
-                # TODO: examine the extra_para, follow the random choose codes, to make it robust and easier to use
+            elif extra_para in fixture_keys: # navigate to the given fixture
                 fixture_str = extra_para
-                fixture = env.fixtures[fixture_str]
+                for fxtr in fixtures:
+                    if type(fxtr).__name__.lower() == fixture_str:
+                        fixture = fxtr
                 self.target_pos, self.target_ori = env.compute_robot_base_placement_pose(fixture)
             
             else:
-                # print(colored(f'Failure: there is no {extra_para} in the environment!', 'red'))
                 raise ValueError(f'there is no {extra_para} in the environment!')
         
         # get base position and orientation

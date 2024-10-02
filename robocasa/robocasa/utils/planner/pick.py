@@ -23,6 +23,7 @@ class PickUpPlanner:
         
         self.task_stage = 0
         self.id = id
+        
         self.init_eef_pos = obs[f'robot{self.id}_eef_pos']
         self.init_eef_mat = T.quat2mat(obs[f'robot{self.id}_eef_quat'])
         
@@ -32,7 +33,6 @@ class PickUpPlanner:
             obj = env.objects[self.obj_str] # rot
             obj.pos = obs[self.obj_str + '_pos'] # pos
         else:
-            # print(colored(f'Failure: there is no {extra_para} in the environment!', 'red'))
             raise ValueError(f'there is no {extra_para} in the environment!')
     
     def get_control(self, env=None, obs=None):

@@ -79,6 +79,21 @@ def run_controlled_rollout_multitask_agent(
         ac = CU.create_action(grasp=False)
         ob_dict, r, done, info = env.step(ac)
     
+    # get all available fixtures and objects
+    fixtures = list(env.env.env.fixtures.values())
+    fxtr_classes = [type(fxtr).__name__ for fxtr in fixtures]
+    valid_target_fxtr_classes = [
+        cls for cls in fxtr_classes if fxtr_classes.count(cls) == 1 and cls in [
+            "CoffeeMachine", "Toaster", "Stove", "Stovetop", "OpenCabinet",
+            "Microwave", "Sink", "Hood", "Oven", "Fridge", "Dishwasher",
+        ]
+    ]
+    fixture_keys = [fxtr.lower() for fxtr in valid_target_fxtr_classes]
+    
+    # print available fixtures, objects, and commands
+    print(colored("\nAvailable fixtures in env {}:".format(type(env.env.env).__name__), "yellow"))
+    for key in fixture_keys:
+        print(key)
     print(colored("\nAvailable objects in env {}:".format(type(env.env.env).__name__), "yellow"))
     for key in env.env.env.objects.keys():
         print(key)
@@ -87,15 +102,19 @@ def run_controlled_rollout_multitask_agent(
         print(key)
     print()
     
+    # start episode
     while True:
         task_i += 1
         
+        # get language command and controller config for each agent
         try:
             lang_command = input(colored("Please enter command for task {}:\n".format(task_i), "yellow"))
             controller_config, extra_para = CD.search_config(lang_command, CD.controller_dict)
         except ValueError as e:
             print(colored('Error: {}'.format(e), 'red'))
             continue
+        
+        # get policy or planner for each agent
         
         if controller_config["type"] == "policy":
             env_lang = controller_config["env_lang"]

@@ -23,6 +23,7 @@ class PlaceToPlanner:
         
         self.task_stage = 0
         self.id = id
+        
         self.init_eef_pos = obs[f'robot{self.id}_eef_pos']
         self.init_eef_mat = T.quat2mat(obs[f'robot{self.id}_eef_quat'])
         
@@ -32,7 +33,6 @@ class PlaceToPlanner:
             obj = env.objects[self.obj_str] # rot
             obj.pos = obs[self.obj_str + '_pos'] # pos
         else:
-            # print(colored(f'Failure: there is no {extra_para} in the environment!', 'red'))
             raise ValueError(f'there is no {extra_para} in the environment!')
     
     def get_control(self, env=None, obs=None):
@@ -47,11 +47,6 @@ class PlaceToPlanner:
         
         # move the gripper to the object position
         if self.task_stage == 0:
-            
-            if self.init_eef_pos is None:
-                self.init_eef_pos = obs[f'robot{self.id}_eef_pos']
-            if self.init_eef_mat is None:
-                self.init_eef_mat = T.quat2mat(obs[f'robot{self.id}_eef_quat'])
             
             # position control
             base_ori = T.mat2euler(T.quat2mat(obs[f'robot{self.id}_base_quat']))[2]
