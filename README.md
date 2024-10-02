@@ -40,17 +40,7 @@ cd robocasa
 python robocasa/demos/multi_teleop_test.py 
 ```
 
-## Controller
-
-Default PID planners for single-tasks:
-* NavigateKitchen
-* PnPCounterToCounter
-
-Can be called automatically in teleoperate script, facilitating demonstration collection for tasks that lack released mimicgen demonstrations.
-
-These planners have similar backups in `robocasa/robocasa/utils/planner`, which are also used in `robocasa/robocasa/utils/controller_dict.py` for language-guided robot operation.
-
-## Validation
+## Multitask Policy Validation
 
 1. Validate a single-task trained agent in a multi-task one-agent environment.
 Can specify different environments and command languages.
@@ -68,17 +58,39 @@ Can specify different environments and command languages.
 Directly reset the joint positions of the robot arm in simulation data whenever a task is completed.
 ```
 python robomimic/robomimic/scripts/run_trained_multitask_twoagent_reset.py \
---agent path/to/ckpt.pth \
---env multitask_twoagent_env \
---env_lang "agent0 task0_lang, agent1 task1_lang" # follow this format
+--agent path/to/ckpt0.pth path/to/ckpt1.pth \
+--env multitask_twoagent_env # any registered env starts with "TwoAgent" \
+--env_lang "agent0 task0_lang, agent1 task1_lang" # follow this format \
 --renderer "mjviewer" # "mujoco" or "mjviewer"
 ```
 
-3. Using standardized language instructions to guide robot manipulation or navigation.
+## Controller
+
+Default PID planners for single-tasks:
+* Navigation
+* Pick
+* Place
+
+Can be called automatically in teleoperate script, facilitating demonstration collection for tasks that lack released mimicgen demonstrations.
+
+These planners are stored in `robocasa/robocasa/utils/planner`, which are also used in `robocasa/robocasa/utils/controller_dict.py` for language-guided robot control.
+
+## Language Instruction Control
+
+1. Using standardized language instructions to guide robot manipulation or navigation.
 The input language command should match keys in `robocasa/robocasa/utils/controller_dict.py`, and will call either hardcode planner or checkpoint policy to control the robot.
 ```
-python robomimic/robomimic/scripts/run_controlled_multitask_agent_reset.py
+python robomimic/robomimic/scripts/run_controlled_multitask_agent_reset.py \
 --agent path/to/ckpt.pth # also need to provide a path \
 --env multitask_agent_env \
+--renderer "mjviewer" # "mujoco" or "mjviewer"
+```
+
+2. Using standardized language instructions to guide two-robot manipulation or navigation.
+The input language command should match keys in `robocasa/robocasa/utils/controller_dict.py`, and will call either hardcode planner or checkpoint policy to control the robot.
+```
+python robomimic/robomimic/scripts/run_controlled_multitask_twoagent_reset.py \
+--agent path/to/ckpt0.pth path/to/ckpt1.pth # also need to provide paths \
+--env multitask_twoagent_env # any registered env starts with "TwoAgent" \
 --renderer "mjviewer" # "mujoco" or "mjviewer"
 ```
