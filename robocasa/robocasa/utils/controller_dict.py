@@ -8,11 +8,15 @@ def search_config(lang_command, controller_dict):
     """
     extract dict key and extra parameters from lang_command
     """
+    find_key = False
     for key in controller_dict.keys():
         if lang_command.startswith(key):
             controller_config = controller_dict[key]
             remaining_str = lang_command.replace(key, "", 1).strip()
+            find_key = True
             break
+    if not find_key:
+        raise ValueError("language command cannot match any controller")
     if remaining_str != "":
         extra_para = remaining_str
     else:
@@ -28,24 +32,34 @@ def get_recent_obs(ob_dict):
 
 controller_dict = OrderedDict() # order of the key is important
 
+controller_dict['wait'] = {
+    'type': 'planner',
+    'planner': planner.WaitPlanner,
+}
+
+controller_dict['reset arm'] = {
+    'type': 'planner',
+    'planner': planner.ResetArmPlanner,
+}
+
 controller_dict['pick up'] = {
     'type': 'planner',
-    'planner': planner.pick_up_planner,
+    'planner': planner.PickUpPlanner,
 }
 
 controller_dict['place to'] = {
     'type': 'planner',
-    'planner': planner.place_to_planner,
+    'planner': planner.PlaceToPlanner,
 }
 
 controller_dict['navigate to'] = {
     'type': 'planner',
-    'planner': planner.navigation_planner,
+    'planner': planner.NavigationPlanner,
 }
 
 controller_dict['navigation'] = {
     'type': 'planner',
-    'planner': planner.navigation_planner,
+    'planner': planner.NavigationPlanner,
 }
 
 controller_dict['open microwave door'] = {

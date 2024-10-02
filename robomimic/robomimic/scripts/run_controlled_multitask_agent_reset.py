@@ -48,7 +48,6 @@ def run_controlled_rollout_multitask_agent(
         verbose=False,
     ):
 
-    # assert isinstance(policy, RolloutPolicy)
     assert isinstance(env, EnvBase) or isinstance(env, EnvWrapper)
 
     ob_dict = env.reset()
@@ -75,19 +74,15 @@ def run_controlled_rollout_multitask_agent(
     horizon_reached = False
     task_i = -1
     
-    policy = None
-    planner = None
-    checker = None
-    
     # to render initial state
     for _ in range(1):
-        ac = CU.create_action()
+        ac = CU.create_action(grasp=False)
         ob_dict, r, done, info = env.step(ac)
     
     print(colored("\nAvailable objects in env {}:".format(type(env.env.env).__name__), "yellow"))
     for key in env.env.env.objects.keys():
         print(key)
-    print(colored("\nAvailable command in controller dict:", "yellow"))
+    print(colored("\nAvailable commands in controller dict:", "yellow"))
     for key in CD.controller_dict.keys():
         print(key)
     print()
@@ -95,22 +90,14 @@ def run_controlled_rollout_multitask_agent(
     while True:
         task_i += 1
         
-        lang_command = input(colored("Please enter command for task {}:\n".format(task_i), "yellow"))
-        
-        if lang_command == "reset arm":
-            initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
-            env.env.env.robots[0].set_robot_joint_positions(initial_qpos)
-            ac = CU.create_action()
-            ob_dict, r, done, info = env.step(ac)
+        try:
+            lang_command = input(colored("Please enter command for task {}:\n".format(task_i), "yellow"))
+            controller_config, extra_para = CD.search_config(lang_command, CD.controller_dict)
+        except ValueError as e:
+            print(colored('Error: {}'.format(e), 'red'))
             continue
         
-        controller_config, extra_para = CD.search_config(lang_command, CD.controller_dict)
-        
         if controller_config["type"] == "policy":
-            if policy is not None:
-                del policy # to avoid huge gpu memory usage
-            if checker is not None:
-                del checker
             env_lang = controller_config["env_lang"]
             ckpt_path = controller_config["ckpt_path"]
             policy, ckpt_dict = FileUtils.policy_from_checkpoint(ckpt_path=ckpt_path, device=device, verbose=False)
@@ -119,7 +106,12 @@ def run_controlled_rollout_multitask_agent(
             checker = controller_config["checker"]
             
         elif controller_config["type"] == "planner":
-            planner = controller_config["planner"]
+            obs = env.env.env.observation_spec()
+            try:
+                planner = controller_config["planner"](env, obs, extra_para)
+            except ValueError as e:
+                print(colored('Error: {}'.format(e), 'red'))
+                continue
         
         # start control loop
         for step_i in range(horizon): #LogUtils.tqdm(range(horizon)):
@@ -132,11 +124,9 @@ def run_controlled_rollout_multitask_agent(
                 arm_need_reset = True
             elif controller_config["type"] == "planner":
                 obs = env.env.env.observation_spec()
-                ac, control_info = planner(env, obs, extra_para)
+                ac, control_info = planner.get_control(env=env, obs=obs)
                 end_control = control_info["end_control"]
                 arm_need_reset = control_info["arm_need_reset"]
-            else:
-                raise ValueError("controller type not supported")
                 
             # play action
             ob_dict, r, done, info = env.step(ac)
@@ -166,35 +156,48 @@ def run_controlled_rollout_multitask_agent(
 
             # break if done or success or end control
             if done or (terminate_on_success and success["task"]) or end_control:
-                if task_i == 0:
+                if end_step == None:
                     end_step = step_i
                 else:
                     end_step += step_i
+                
+                # delete policy or planner objects
+                if controller_config["type"] == "policy":
+                    del policy # to avoid huge gpu memory usage
+                    del checker
+                elif controller_config["type"] == "planner":
+                    del planner
                     
                 # reset arm to initial position and orientation
                 if arm_need_reset:
                     initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
                     env.env.env.robots[0].set_robot_joint_positions(initial_qpos)
-                    ac = CU.create_action()
+                    ac = CU.create_action(grasp=False)
                     ob_dict, r, done, info = env.step(ac)
                 break
             
             if step_i == horizon - 1:
                 horizon_reached = True
-                if task_i == 0:
+                if end_step == None:
                     end_step = step_i
                 else:
                     end_step += step_i
                     
                 if verbose:
-                    print(colored('Failure: horizon reached, task{} failed'.format(task_i), 'red'))
+                    print(colored('Failure: horizon reached, task {} failed'.format(task_i), 'red'))
                 
-                arm_need_reset = True
+                # delete policy or planner objects
+                if controller_config["type"] == "policy":
+                    del policy # to avoid huge gpu memory usage
+                    del checker
+                elif controller_config["type"] == "planner":
+                    del planner
+                
                 # reset arm to initial position and orientation
                 if arm_need_reset:
                     initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
                     env.env.env.robots[0].set_robot_joint_positions(initial_qpos)
-                    ac = CU.create_action()
+                    ac = CU.create_action(grasp=False)
                     ob_dict, r, done, info = env.step(ac)
                 break
             
@@ -282,7 +285,6 @@ def run_controlled_multitask_agent(args):
     from robomimic.envs.wrappers import FrameStackWrapper
     frame_stack = 10 # from auto gen config file
     env = FrameStackWrapper(env, num_frames=frame_stack)
-    # env = EnvUtils.wrap_env_from_config(env, config=config)  # apply environment warpper, if applicable
 
     # maybe set seed
     if args.seed is not None:
@@ -300,14 +302,12 @@ def run_controlled_multitask_agent(args):
     num_episodes = args.n_rollouts
     render = args.render
     video_dir = args.video_path if write_video else None
-    epoch = 2 # epoch number can be assigned manually
+    epoch = 3 # epoch number can be assigned manually
     video_skip = args.video_skip
     terminate_on_success = True
     del_envs_after_rollouts = True
     verbose = args.verbose
     ### end of passing parameters ###
-        
-    # assert isinstance(policy, RolloutPolicy)
 
     all_rollout_logs = OrderedDict()
 
@@ -335,7 +335,7 @@ def run_controlled_multitask_agent(args):
             env_name, horizon, use_goals, num_episodes,
         ))
         rollout_logs = []
-
+        
         iterator = range(num_episodes)
         if not verbose:
             iterator = LogUtils.custom_tqdm(iterator, total=num_episodes)

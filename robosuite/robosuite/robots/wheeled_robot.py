@@ -189,16 +189,16 @@ class WheeledRobot(MobileBaseRobot):
 
         @sensor(modality=modality)
         def base_pos(obs_cache):
-            return np.array(self.sim.data.site_xpos[self.sim.model.site_name2id("base0_center")])
+            return np.array(self.sim.data.site_xpos[self.sim.model.site_name2id(f"base{self.idn}_center")]) # bug, should consider prefix 1
 
         @sensor(modality=modality)
         def base_quat(obs_cache):
-            return T.mat2quat(self.sim.data.get_site_xmat("base0_center"))
+            return T.mat2quat(self.sim.data.get_site_xmat(f"base{self.idn}_center"))
 
         @sensor(modality=modality)
         def base_to_eef_pos(obs_cache):
             eef_pos = np.array(self.sim.data.site_xpos[self.eef_site_id[arm]])
-            base_pos = np.array(self.sim.data.site_xpos[self.sim.model.site_name2id("base0_center")])
+            base_pos = np.array(self.sim.data.site_xpos[self.sim.model.site_name2id(f"base{self.idn}_center")])
 
             eef_quat = T.convert_quat(self.sim.data.get_body_xquat(self.robot_model.eef_name[arm]), to="xyzw")
             eef_mat = T.quat2mat(eef_quat)
@@ -213,11 +213,11 @@ class WheeledRobot(MobileBaseRobot):
         @sensor(modality=modality)
         def base_to_eef_quat(obs_cache):
             eef_pos = np.array(self.sim.data.site_xpos[self.eef_site_id[arm]])
-            base_pos = np.array(self.sim.data.site_xpos[self.sim.model.site_name2id("base0_center")])
+            base_pos = np.array(self.sim.data.site_xpos[self.sim.model.site_name2id(f"base{self.idn}_center")])
 
             eef_quat = T.convert_quat(self.sim.data.get_body_xquat(self.robot_model.eef_name[arm]), to="xyzw")
             eef_mat = T.quat2mat(eef_quat)
-            base_mat = self.sim.data.get_site_xmat("base0_center")
+            base_mat = self.sim.data.get_site_xmat(f"base{self.idn}_center")
 
             T_WA = np.vstack((np.hstack((base_mat, base_pos[:, None])), [0, 0, 0, 1]))
             T_WB = np.vstack((np.hstack((eef_mat, eef_pos[:, None])), [0, 0, 0, 1]))

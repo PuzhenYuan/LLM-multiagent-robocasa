@@ -10,6 +10,7 @@ import numpy as np
 import traceback
 from copy import deepcopy
 from collections import OrderedDict
+from termcolor import colored
 
 import torch
 
@@ -33,10 +34,10 @@ import robosuite
 from robosuite import load_controller_config
 
 import robocasa.utils.control_utils as CU
+import robocasa.utils.controller_dict as CD
 
 
-def run_rollout_multitask_twoagent(
-        policy_list, 
+def run_controlled_rollout_multitask_twoagent(
         env, 
         horizon,
         use_goals=False,
@@ -45,35 +46,13 @@ def run_rollout_multitask_twoagent(
         video_skip=5,
         terminate_on_success=False,
         verbose=False,
-        env_lang=None # "task0_lang, task1_lang, ..."
     ):
-
-    assert isinstance(policy_list, list) # list of rollout policies
-    assert isinstance(env, EnvBase) or isinstance(env, EnvWrapper) or isinstance(env, SubprocVectorEnv)
+    
+    assert isinstance(env, EnvBase) or isinstance(env, EnvWrapper)
 
     ob_dict = env.reset()
-    
-    # seperate env language to language commands
-    if env_lang is None:
-        env_lang = env._ep_lang_str # contrain multiple tasks, seperated by comma
-    lang_list = env_lang.split(', ')
-    
-    # seperate policy list to policy0 and policy1, and set language commands
-    policy0 = policy_list[0]
-    policy1 = policy_list[1]
-    
-    agent0_lang_list = [lang for lang in lang_list if lang.startswith("agent0")]
-    agent1_lang_list = [lang for lang in lang_list if lang.startswith("agent1")]
-    
-    agent0_first_lang = agent0_lang_list[0].removeprefix("agent0").strip()
-    agent1_first_lang = agent1_lang_list[0].removeprefix("agent1").strip()
-    
-    policy0.start_episode(lang=agent0_first_lang)
-    policy1.start_episode(lang=agent1_first_lang)
-
-    # e.g. env.is_success() = {'task':False, 'task1':False, 'task2':False}
-    assert len(lang_list) == len(env.is_success()) - 1
-    task_num = len(lang_list)
+    if render:
+        env.render(mode="human")
  
     goal_dict = None
     if use_goals:
@@ -90,46 +69,119 @@ def run_rollout_multitask_twoagent(
 
     video_frames = []
     
-    horizon_reached = False
+    device = TorchUtils.get_torch_device(try_to_use_cuda=True)
     
-    for task_i in range(task_num):
+    horizon_reached = False
+    task_i = -1
+    
+    # to render initial state
+    for _ in range(1):
+        ac0 = CU.create_action(grasp=False, id=0)
+        ac1 = CU.create_action(grasp=False, id=1)
+        ac = np.concatenate([ac0, ac1], axis=0)
+        ob_dict, r, done, info = env.step(ac)
+    
+    print(colored("\nAvailable objects in env {}:".format(type(env.env.env).__name__), "yellow"))
+    for key in env.env.env.objects.keys():
+        print(key)
+    print(colored("\nAvailable commands in controller dict:", "yellow"))
+    for key in CD.controller_dict.keys():
+        print(key)
+    
+    while True:
+        task_i += 1
+        end_control0 = False
+        end_control1 = False
         
-        # set active policy
-        if lang_list[task_i].startswith("agent0"):
-            command_lang = lang_list[task_i].removeprefix("agent0").strip()
-            policy0.set_language(lang=command_lang)  # change to policy.start_episode()?
-            policy = policy0
-        elif lang_list[task_i].startswith("agent1"):
-            command_lang = lang_list[task_i].removeprefix("agent1").strip()
-            policy1.set_language(lang=command_lang)  # change to policy.start_episode()?
-            policy = policy1
-        else:
-            raise ValueError("Language command must start with 'agent0' or 'agent1'")
+        print()
         
-        if verbose:
-            print('Begin task{}: {}'.format(task_i, lang_list[task_i]))
+        try:
+            lang_command0 = input(colored("Please enter agent0's command for task {}:\n".format(task_i), "yellow"))
+            controller_config0, extra_para0 = CD.search_config(lang_command0, CD.controller_dict)
+        except ValueError as e:
+            print(colored("Error: agent0's {}".format(e), 'red'))
+            continue
+        try:
+            lang_command1 = input(colored("Please enter agent1's command for task {}:\n".format(task_i), "yellow"))
+            controller_config1, extra_para1 = CD.search_config(lang_command1, CD.controller_dict)
+        except ValueError as e:
+            print(colored("Error: agent1's {}".format(e), 'red'))
+            continue
+        
+        if controller_config0["type"] == "policy":
+            env_lang0 = controller_config0["env_lang"]
+            ckpt_path0 = controller_config0["ckpt_path"]
+            policy0, ckpt_dict0 = FileUtils.policy_from_checkpoint(ckpt_path=ckpt_path0, device=device, verbose=False)
+            assert isinstance(policy0, RolloutPolicy)
+            policy0.start_episode(lang=env_lang0)
+            checker0 = controller_config0["checker"]
+            
+        elif controller_config0["type"] == "planner":
+            obs = env.env.env.observation_spec()
+            try:
+                planner0 = controller_config0["planner"](env, obs, extra_para0, id=0)
+            except ValueError as e:
+                planner0 = None
+                print(colored('Error: {}'.format(e), 'red'))
+                continue
+        
+        if controller_config1["type"] == "policy":
+            env_lang1 = controller_config1["env_lang"]
+            ckpt_path1 = controller_config1["ckpt_path"]
+            policy1, ckpt_dict1 = FileUtils.policy_from_checkpoint(ckpt_path=ckpt_path1, device=device, verbose=False)
+            assert isinstance(policy1, RolloutPolicy)
+            policy1.start_episode(lang=env_lang1)
+            checker1 = controller_config1["checker"]
+            
+        elif controller_config1["type"] == "planner":
+            obs = env.env.env.observation_spec()
+            try:
+                planner1 = controller_config1["planner"](env, obs, extra_para1, id=1)
+            except ValueError as e:
+                planner1 = None
+                print(colored('Error: {}'.format(e), 'red'))
+                continue
+
+        # start control loop
         for step_i in range(horizon): #LogUtils.tqdm(range(horizon)):
             
-            # get action from policy
-            policy_ob = ob_dict
-            ac = policy(ob=policy_ob, goal=goal_dict) #, return_ob=True)
-
-            # fill necessary zero actions
-            if lang_list[task_i].startswith("agent0"):
-                zero_action = np.array([0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1])
-                ac = np.concatenate((ac, zero_action), axis=0)
-            elif lang_list[task_i].startswith("agent1"):
-                zero_action = np.array([0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1])
-                ac = np.concatenate((zero_action, ac), axis=0)
-            else:
-                raise ValueError("Language command must start with 'agent0' or 'agent1'")
+            # use policy or planner to get action
             
+            if end_control0:
+                ac0 = CU.create_action(id=0)
+            else:
+                if controller_config0["type"] == "policy":
+                    policy_ob = ob_dict
+                    ac0 = policy0(policy_ob, goal_dict)
+                    end_control0 = checker0(env)
+                    arm_need_reset0 = True
+                elif controller_config0["type"] == "planner":
+                    obs = env.env.env.observation_spec()
+                    ac0, control_info0 = planner0.get_control(env=env, obs=obs)
+                    end_control0 = control_info0["end_control"]
+                    arm_need_reset0 = control_info0["arm_need_reset"]
+            
+            if end_control1:
+                ac1 = CU.create_action(id=1)
+            else:
+                if controller_config1["type"] == "policy":
+                    policy_ob = ob_dict
+                    ac1 = policy1(policy_ob, goal_dict)
+                    end_control1 = checker1(env)
+                    arm_need_reset1 = True
+                elif controller_config1["type"] == "planner":
+                    obs = env.env.env.observation_spec()
+                    ac1, control_info1 = planner1.get_control(env=env, obs=obs)
+                    end_control1 = control_info1["end_control"]
+                    arm_need_reset1 = control_info1["arm_need_reset"]
+                
             # play action
+            ac = np.concatenate([ac0, ac1], axis=0)
             ob_dict, r, done, info = env.step(ac)
 
             # render to screen
             if render:
-                env.render(mode="human")
+                env.render(mode="human") # can change camera here, or by default the first camera in camera list
 
             # compute reward
             rews.append(r)
@@ -148,33 +200,83 @@ def run_rollout_multitask_twoagent(
                 if video_count % video_skip == 0:
                     frame = env.render(mode="rgb_array", height=512, width=512)
                     video_frames.append(frame)
-
                 video_count += 1
 
-            # break if done
-            if done or (terminate_on_success and success["task{}".format(task_i)]):
-                if task_i == 0:
+            # break if done or success or end control
+            if done or (terminate_on_success and success["task"]) or (end_control0 and end_control1):
+                if end_step == None:
                     end_step = step_i
                 else:
                     end_step += step_i
                 
+                # delete policy or planner objects
+                if controller_config0["type"] == "policy":
+                    del policy0 # to avoid huge gpu memory usage
+                    del checker0
+                elif controller_config0["type"] == "planner":
+                    del planner0
+                if controller_config1["type"] == "policy":
+                    del policy1 # to avoid huge gpu memory usage
+                    del checker1
+                elif controller_config1["type"] == "planner":
+                    del planner1
+
                 # reset arm to initial position and orientation
-                initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
-                env.env.env.robots[0].set_robot_joint_positions(initial_qpos)
-                env.env.env.robots[1].set_robot_joint_positions(initial_qpos)
-                ac0 = CU.create_action(grasp=False, id=0)
-                ac1 = CU.create_action(grasp=False, id=1)
-                ac = np.concatenate([ac0, ac1], axis=0)
-                ob_dict, r, done, info = env.step(ac)
+                if arm_need_reset0:
+                    initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
+                    env.env.env.robots[0].set_robot_joint_positions(initial_qpos)
+                if arm_need_reset1:
+                    initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
+                    env.env.env.robots[1].set_robot_joint_positions(initial_qpos)
+                if arm_need_reset0 or arm_need_reset1:
+                    ac0 = CU.create_action(grasp=False, id=0)
+                    ac1 = CU.create_action(grasp=False, id=1)
+                    ac = np.concatenate([ac0, ac1], axis=0)
+                    ob_dict, r, done, info = env.step(ac)
                 break
             
+            # break if horizon reached and task failed
             if step_i == horizon - 1:
                 horizon_reached = True
+                if end_step == None:
+                    end_step = step_i
+                else:
+                    end_step += step_i
+                    
                 if verbose:
-                    print('Horizon reached, task{} failed'.format(task_i))
+                    if not end_control0:
+                        print(colored("Failure: horizon reached, agent0's task {} failed".format(task_i), 'red'))
+                    if not end_control1:
+                        print(colored("Failure: horizon reached, agent1's task {} failed".format(task_i), 'red'))
+                
+                # delete policy or planner objects
+                if controller_config0["type"] == "policy":
+                    del policy0 # to avoid huge gpu memory usage
+                    del checker0
+                elif controller_config0["type"] == "planner":
+                    del planner0
+                if controller_config1["type"] == "policy":
+                    del policy1 # to avoid huge gpu memory usage
+                    del checker1
+                elif controller_config1["type"] == "planner":
+                    del planner1
+                
+                # reset arm to initial position and orientation
+                if arm_need_reset0:
+                    initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
+                    env.env.env.robots[0].set_robot_joint_positions(initial_qpos)
+                if arm_need_reset1:
+                    initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
+                    env.env.env.robots[1].set_robot_joint_positions(initial_qpos)
+                if arm_need_reset0 or arm_need_reset1:
+                    ac0 = CU.create_action(grasp=False, id=0)
+                    ac1 = CU.create_action(grasp=False, id=1)
+                    ac = np.concatenate([ac0, ac1], axis=0)
+                    ob_dict, r, done, info = env.step(ac)
                 break
-        if [success["task{}".format(id)] for id in range(task_num)].count(True) == task_num:
-            if verbose: 
+            
+        if success["task"] == True:
+            if verbose:
                 print('All task success in a multitask rollout!')
             break
         if done:
@@ -182,7 +284,7 @@ def run_rollout_multitask_twoagent(
                 print('Done by some reasons')
             break
         if horizon_reached:
-            break
+            continue # try again or change task
 
     # post process, write video, calculate returns, etc.
     if video_writer is not None:
@@ -204,7 +306,7 @@ def run_rollout_multitask_twoagent(
     return results
 
 
-def run_trained_multitask_twoagent(args):
+def run_controlled_multitask_twoagent(args):
     # some arg checking
     write_video = (args.video_path is not None)
     assert not (args.render and write_video) # either on-screen or video but not both
@@ -213,19 +315,11 @@ def run_trained_multitask_twoagent(args):
         assert len(args.camera_names) == 1
 
     # relative path to agent
-    ckpt_path = args.agent # should be a list
+    ckpt_path = args.agent[0] # should be a list
 
-    # device
-    device = TorchUtils.get_torch_device(try_to_use_cuda=True)
-
-    # restore rollout policy
-    policy0, ckpt_dict0 = FileUtils.policy_from_checkpoint(ckpt_path=ckpt_path[0], device=device, verbose=True)
-    policy1, ckpt_dict1 = FileUtils.policy_from_checkpoint(ckpt_path=ckpt_path[1], device=device, verbose=True)
-    
-    # if rollout_horizon is None:
-        # read horizon from config
-    config0, _ = FileUtils.config_from_checkpoint(ckpt_dict=ckpt_dict0)
-    config1, _ = FileUtils.config_from_checkpoint(ckpt_dict=ckpt_dict1)
+    ckpt_dict = FileUtils.maybe_dict_from_checkpoint(ckpt_path=ckpt_path)
+    config, _ = FileUtils.config_from_checkpoint(ckpt_dict=ckpt_dict)
+    ObsUtils.initialize_obs_utils_with_config(config, verbose=False)
     
     assert args.env.startswith("TwoAgent") # only support two agent tasks
     
@@ -250,13 +344,9 @@ def run_trained_multitask_twoagent(args):
                         ["robot1_agentview_left", "robot1_agentview_right", "robot1_eye_in_hand"],
         "camera_heights": 128,
         "camera_widths": 128,
-        "translucent_robot": False,
+        "translucent_robot": True,
+        "layout_ids": -2, # added for navigation
     }
-    
-    if args.env_lang is not None:
-        env_lang = args.env_lang # "task0_lang, task1_lang, ..."
-    else:
-        env_lang = None
     
     # create environment from args.env
     env = EnvUtils.create_env(
@@ -269,7 +359,9 @@ def run_trained_multitask_twoagent(args):
     )
     
     # handle environment wrappers
-    env = EnvUtils.wrap_env_from_config(env, config=config0)  # apply environment warpper, if applicable, either config0 or config1 is ok
+    from robomimic.envs.wrappers import FrameStackWrapper
+    frame_stack = 10 # from auto gen config file
+    env = FrameStackWrapper(env, num_frames=frame_stack)
 
     # maybe set seed
     if args.seed is not None:
@@ -283,21 +375,16 @@ def run_trained_multitask_twoagent(args):
     ### passing some parameters ###
     envs = [env]
     horizon = args.horizon
-    use_goals = config0.use_goals or config1.use_goals
+    use_goals = False
     num_episodes = args.n_rollouts
     render = args.render
     video_dir = args.video_path if write_video else None
-    epoch = 3 # epoch number can be assigned manually
+    epoch = 4 # epoch number can be assigned manually
     video_skip = args.video_skip
-    
-    assert config0.experiment.rollout.terminate_on_success == config1.experiment.rollout.terminate_on_success
-    terminate_on_success = config0.experiment.rollout.terminate_on_success or config1.experiment.rollout.terminate_on_success
-    
+    terminate_on_success = True
     del_envs_after_rollouts = True
     verbose = args.verbose
     ### end of passing parameters ###
-        
-    assert isinstance(policy0, RolloutPolicy) and isinstance(policy1, RolloutPolicy)
 
     all_rollout_logs = OrderedDict()
 
@@ -336,8 +423,7 @@ def run_trained_multitask_twoagent(args):
             if verbose:
                 print("\nStarting episode {}...".format(ep_i + 1))
             try:
-                rollout_info = run_rollout_multitask_twoagent(
-                    policy_list=[policy0, policy1],
+                rollout_info = run_controlled_rollout_multitask_twoagent(
                     env=env,
                     horizon=horizon,
                     render=render,
@@ -346,7 +432,6 @@ def run_trained_multitask_twoagent(args):
                     video_skip=video_skip,
                     terminate_on_success=terminate_on_success,
                     verbose=verbose,
-                    env_lang=env_lang # "agent0 task0_lang, agent 1 task1_lang, ..."
                 )
             except Exception as e:
                 print("Rollout exception at episode number {}!".format(ep_i))
@@ -427,7 +512,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--horizon",
         type=int,
-        default=1000, # None by default
+        default=500, # None by default
         help="(optional) override maximum horizon of rollout from the one in the checkpoint",
     )
 
@@ -500,7 +585,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--verbose",
         type=bool,
-        default=False, # None by default
+        default=True, # None by default
         help="(optional) debug for rollouts",
     )
     
@@ -525,4 +610,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.render == False
-    run_trained_multitask_twoagent(args)
+    run_controlled_multitask_twoagent(args)

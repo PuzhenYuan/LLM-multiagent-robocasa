@@ -94,7 +94,11 @@ def collect_human_trajectory( # the most important function in robocasa
 
     discard_traj = False
     
-    # last_grasp = 0
+    # Use optimal plannar if has get_control method
+    use_planner = False
+    if hasattr(env, "get_control"):
+        choice = input("The env has optimal planner, use it? (y/n): ")
+        use_planner = False if choice == "n" else True
 
     # Loop until we get a reset from the input or the task completes
     while True:
@@ -181,7 +185,7 @@ def collect_human_trajectory( # the most important function in robocasa
                 raise ValueError("Invalid active robot")
 
         # Use optimal plannar if has get_control method
-        if hasattr(env, "get_control"):
+        if use_planner:
             action = env.get_control(obs)
         
         # Run environment step

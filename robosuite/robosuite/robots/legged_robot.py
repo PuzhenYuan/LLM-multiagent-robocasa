@@ -242,7 +242,7 @@ class LeggedRobot(MobileBaseRobot):
 
         @sensor(modality=modality)
         def base_pos(obs_cache):
-            return np.array(self.sim.data.site_xpos[self.sim.model.site_name2id("mobile_base0_center")])
+            return np.array(self.sim.data.site_xpos[self.sim.model.site_name2id(f"mobile_base{self.idn}_center")])
 
         # only consider prefix if there is more than one arm
         pf = f"{arm}_" if len(self.arms) > 1 else ""

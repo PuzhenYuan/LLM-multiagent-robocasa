@@ -86,9 +86,10 @@ def map_action(action, base_ori=None):
     else:
         raise ValueError
 
-last_grasp = False
+last_grasp0 = False
+last_grasp1 = False # TODO: more elegant way to handle this?
 
-def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None, grasp=None):
+def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None, grasp=None, id=0):
     """
     Create action vector for mobile robot control.
 
@@ -108,14 +109,24 @@ def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None
     base_pos = np.zeros(2) if base_pos is None else base_pos
     base_ori = np.zeros(1) if base_ori is None else base_ori
     
-    global last_grasp # change to a class?
+    global last_grasp0
+    global last_grasp1
     
     if grasp == None:
-        assert last_grasp != None
-        grasp_action = np.array([1]) if last_grasp else np.array([-1])
+        if id == 0:
+            grasp_action = np.array([1]) if last_grasp0 else np.array([-1])
+        elif id == 1:
+            grasp_action = np.array([1]) if last_grasp1 else np.array([-1])
+        else:
+            raise ValueError("create action id should be 0 or 1")
     else:
         assert grasp == True or grasp == False
-        last_grasp = grasp
+        if id == 0:
+            last_grasp0 = grasp
+        elif id == 1:
+            last_grasp1 = grasp
+        else:
+            raise ValueError("create action id should be 0 or 1")
         grasp_action = np.array([1]) if grasp else np.array([-1])
         
     action = np.concatenate((eef_pos, eef_axisangle, grasp_action, base_pos, base_ori, np.array([0, -1])), axis=0)
@@ -140,3 +151,9 @@ if __name__ == '__main__':
     print(create_action())
     print(create_action(grasp=False))
     print(create_action())
+    from copy import deepcopy
+    pid_base_pos_ctlr0 = deepcopy(pid_base_pos_ctlr)
+    pid_base_pos_ctlr1 = deepcopy(pid_base_pos_ctlr)
+    print(pid_base_pos_ctlr)
+    print(pid_base_pos_ctlr0)
+    print(pid_base_pos_ctlr1)
