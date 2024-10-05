@@ -35,7 +35,7 @@ def is_empty_input_spacemouse(action):
         return True
     return False
 
-def collect_human_trajectory( # the most important function in robocasa
+def collect_human_trajectory(
     env, device, arm, env_configuration, mirror_actions,
     render=True, max_fr=None,
     print_info=True,
@@ -189,6 +189,7 @@ def collect_human_trajectory( # the most important function in robocasa
             action = env.get_control(obs)
         
         # Run environment step
+        print('action: ', action, end='\r')
         obs, reward, done, info = env.step(action)
         if render:
             env.render()

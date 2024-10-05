@@ -33,8 +33,8 @@ kp_base_ori = 1.5
 ki_base_ori = 0.05
 kd_base_ori = 0
 
-kp_eef_pos = 1.0
-ki_eef_pos = 0.01
+kp_eef_pos = 2.0
+ki_eef_pos = 0.02
 kd_eef_pos = 0
 
 kp_eef_axisangle = 1.0
@@ -89,9 +89,9 @@ def map_action(action, base_ori=None):
 last_grasp0 = False
 last_grasp1 = False # TODO: more elegant way to handle this?
 
-def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None, grasp=None, id=0):
+def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None, base_height=None, grasp=None, id=0):
     """
-    Create action vector for mobile robot control.
+    Create action vector for single mobile robot control.
 
     Args:
         eef_pos (np.array, optional): eef pos action. Defaults to None.
@@ -108,6 +108,13 @@ def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None
     eef_axisangle = np.zeros(3) if eef_axisangle is None else eef_axisangle
     base_pos = np.zeros(2) if base_pos is None else base_pos
     base_ori = np.zeros(1) if base_ori is None else base_ori
+    
+    if base_height == None:
+        base_height_action = np.array([0])
+    elif base_height == "up":
+        base_height_action = np.array([1])
+    elif base_height == "down":
+        base_height_action = np.array([-1])
     
     global last_grasp0
     global last_grasp1
@@ -129,7 +136,7 @@ def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None
             raise ValueError("create action id should be 0 or 1")
         grasp_action = np.array([1]) if grasp else np.array([-1])
         
-    action = np.concatenate((eef_pos, eef_axisangle, grasp_action, base_pos, base_ori, np.array([0, -1])), axis=0)
+    action = np.concatenate((eef_pos, eef_axisangle, grasp_action, base_pos, base_ori, base_height_action, np.array([-1])), axis=0)
 
     assert action.shape[0] == 12
     return action

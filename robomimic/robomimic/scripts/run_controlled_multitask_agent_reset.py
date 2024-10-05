@@ -79,7 +79,7 @@ def run_controlled_rollout_multitask_agent(
         ac = CU.create_action(grasp=False)
         ob_dict, r, done, info = env.step(ac)
     
-    # get all available fixtures and objects
+    # get all valid fixture keys
     fixtures = list(env.env.env.fixtures.values())
     fxtr_classes = [type(fxtr).__name__ for fxtr in fixtures]
     valid_target_fxtr_classes = [

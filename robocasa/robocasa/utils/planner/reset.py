@@ -35,23 +35,3 @@ class ResetArmPlanner:
         action = CU.create_action(grasp=False, id=self.id)
         info = {'end_control': True, 'arm_need_reset': False}
         return action, info
-
-
-def reset_arm_planner(env, obs, extra_para):
-    
-    if isinstance(env, EnvWrapper):
-        env = env.env
-    if isinstance(env, EnvRobosuite):
-        env = env.env
-    
-    initial_qpos=(-0.01612974, -1.03446714, -0.02397936, -2.27550888, 0.03932365, 1.51639493, 0.69615947)
-    if extra_para == None:
-        id = 0
-    else:
-        assert extra_para in ['0', '1']
-        id = 0 if extra_para == '0' else 1
-    env.robots[id].set_robot_joint_positions(initial_qpos)
-    action = CU.create_action(grasp=False)
-    
-    info = {'end_control': True, 'arm_need_reset': False}
-    return action, info

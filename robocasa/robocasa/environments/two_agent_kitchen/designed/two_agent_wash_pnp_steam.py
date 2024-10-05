@@ -112,7 +112,7 @@ class TwoAgentWashPnPSteam(TwoAgentKitchen):
         
         cfgs.append(dict(
             name="vegetable",
-            obj_groups="vegetable",
+            obj_groups="carrot", # "vegetable"
             graspable=True, 
             washable=True,
             microwavable=True,
