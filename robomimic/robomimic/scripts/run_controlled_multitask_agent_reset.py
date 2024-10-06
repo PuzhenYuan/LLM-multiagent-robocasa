@@ -53,7 +53,7 @@ def run_controlled_rollout_multitask_agent(
     ob_dict = env.reset()
     if render:
         env.render(mode="human")
- 
+
     goal_dict = None
     if use_goals:
         # retrieve goal from the environment

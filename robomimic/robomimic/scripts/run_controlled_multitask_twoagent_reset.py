@@ -46,6 +46,7 @@ def run_controlled_rollout_multitask_twoagent(
         video_skip=5,
         terminate_on_success=False,
         verbose=False,
+        multiagent_config=None # to set observation util configs
     ):
     
     assert isinstance(env, EnvBase) or isinstance(env, EnvWrapper)
@@ -53,7 +54,7 @@ def run_controlled_rollout_multitask_twoagent(
     ob_dict = env.reset()
     if render:
         env.render(mode="human")
- 
+
     goal_dict = None
     if use_goals:
         # retrieve goal from the environment
@@ -131,6 +132,7 @@ def run_controlled_rollout_multitask_twoagent(
             env_lang0 = controller_config0["env_lang"]
             ckpt_path0 = controller_config0["ckpt_path"]
             policy0, ckpt_dict0 = FileUtils.policy_from_checkpoint(ckpt_path=ckpt_path0, device=device, verbose=False)
+            ObsUtils.initialize_obs_utils_with_config(multiagent_config, verbose=False) # maintain obs_utils for all policies
             assert isinstance(policy0, RolloutPolicy)
             policy0.start_episode(lang=env_lang0)
             checker0 = controller_config0["checker"]
@@ -148,6 +150,7 @@ def run_controlled_rollout_multitask_twoagent(
             env_lang1 = controller_config1["env_lang"]
             ckpt_path1 = controller_config1["ckpt_path"]
             policy1, ckpt_dict1 = FileUtils.policy_from_checkpoint(ckpt_path=ckpt_path1, device=device, verbose=False)
+            ObsUtils.initialize_obs_utils_with_config(multiagent_config, verbose=False) # maintain obs_utils for all policies
             assert isinstance(policy1, RolloutPolicy)
             policy1.start_episode(lang=env_lang1)
             checker1 = controller_config1["checker"]
@@ -170,8 +173,9 @@ def run_controlled_rollout_multitask_twoagent(
                 ac0 = CU.create_action(id=0)
             else:
                 if controller_config0["type"] == "policy":
-                    policy_ob = ob_dict
-                    ac0 = policy0(policy_ob, goal_dict)
+                    # policy_ob = ob_dict
+                    policy_ob0 = {key: value for key, value in ob_dict.items() if not key.startswith('robot1')}
+                    ac0 = policy0(policy_ob0, goal_dict)
                     end_control0 = checker0(env)
                     arm_need_reset0 = True
                 elif controller_config0["type"] == "planner":
@@ -184,8 +188,9 @@ def run_controlled_rollout_multitask_twoagent(
                 ac1 = CU.create_action(id=1)
             else:
                 if controller_config1["type"] == "policy":
-                    policy_ob = ob_dict
-                    ac1 = policy1(policy_ob, goal_dict)
+                    # policy_ob = ob_dict
+                    policy_ob1 = {key.replace('robot1', 'robot0'): value for key, value in ob_dict.items() if not key.startswith('robot0')}
+                    ac1 = policy1(policy_ob1, goal_dict)
                     end_control1 = checker1(env)
                     arm_need_reset1 = True
                 elif controller_config1["type"] == "planner":
@@ -335,10 +340,18 @@ def run_controlled_multitask_twoagent(args):
 
     # relative path to agent
     ckpt_path = args.agent[0] # should be a list
-
     ckpt_dict = FileUtils.maybe_dict_from_checkpoint(ckpt_path=ckpt_path)
-    config, _ = FileUtils.config_from_checkpoint(ckpt_dict=ckpt_dict)
-    ObsUtils.initialize_obs_utils_with_config(config, verbose=False)
+    config, _ = FileUtils.config_from_checkpoint(ckpt_dict=ckpt_dict) # TODO: change config to handle multiagent observation
+    
+    # initialize obs_utils, related to ob_dict in env.step return
+    multiagent_config = config
+    robot0_lowdim_obs_list = config["observation"]["modalities"]["obs"]["low_dim"]
+    robot1_lowdim_obs_list = [key.replace('robot0', 'robot1') for key in robot0_lowdim_obs_list]
+    multiagent_config["observation"]["modalities"]["obs"]["low_dim"] = robot0_lowdim_obs_list + robot1_lowdim_obs_list
+    robot0_rgb_obs_list = config["observation"]["modalities"]["obs"]["rgb"]
+    robot1_rgb_obs_list = [key.replace('robot0', 'robot1') for key in robot0_rgb_obs_list]
+    multiagent_config["observation"]["modalities"]["obs"]["rgb"] = robot0_rgb_obs_list + robot1_rgb_obs_list
+    ObsUtils.initialize_obs_utils_with_config(multiagent_config, verbose=False) # use this to maintain obs_utils
     
     assert args.env.startswith("TwoAgent") # only support two agent tasks
     
@@ -451,6 +464,7 @@ def run_controlled_multitask_twoagent(args):
                     video_skip=video_skip,
                     terminate_on_success=terminate_on_success,
                     verbose=verbose,
+                    multiagent_config=multiagent_config # to set observation util configs
                 )
             except Exception as e:
                 print("Rollout exception at episode number {}!".format(ep_i))
