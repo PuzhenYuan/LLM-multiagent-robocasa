@@ -190,9 +190,6 @@ def collect_human_trajectory(
             action = env.get_control(obs)
         
         # Run environment step
-        action = CU.create_action(base_ori=np.array([0.6]))
-        np.set_printoptions(precision=2, suppress=True)
-        print('action: ', action, end='\r')
         obs, reward, done, info = env.step(action)
         if render:
             env.render()
