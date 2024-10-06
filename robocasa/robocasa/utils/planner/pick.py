@@ -81,7 +81,7 @@ class PickUpPlanner:
 
             action = CU.create_action(eef_pos=action_pos, eef_axisangle=action_axisangle, grasp=False, id=self.id)
             
-            if np.linalg.norm(eef_pos - target_pos) < 0.01:
+            if np.linalg.norm(eef_pos - target_pos) < 0.05: # not so strict
                 self.task_stage += 1
                 self.pid_eef_pos_ctlr.reset()
                 self.pid_eef_axisangle_ctlr.reset()
@@ -156,7 +156,7 @@ class PickUpPlanner:
             
             action = CU.create_action(eef_pos=action_pos, eef_axisangle=action_axisangle, grasp=True, id=self.id)
             
-            if np.linalg.norm(eef_pos - target_pos) < 0.01:
+            if np.linalg.norm(eef_pos - target_pos) < 0.05: # not so strict
                 self.task_stage += 1
                 self.pid_eef_pos_ctlr.reset()
                 self.pid_eef_axisangle_ctlr.reset()

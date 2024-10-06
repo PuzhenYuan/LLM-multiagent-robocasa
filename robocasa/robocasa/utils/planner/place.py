@@ -56,7 +56,7 @@ class PlaceToPlanner:
                     self.fixture = fxtr
             # calculate placement position
             base_ori = T.mat2euler(T.quat2mat(obs[f'robot{self.id}_base_quat']))[2]
-            delta_pos_wrt_body =  np.array([-0.08, 0, 0.05]) # place near agent
+            delta_pos_wrt_body =  np.array([-0.08, 0, 0.03]) # place near agent
             delta_pos_wrt_world = delta_pos_wrt_body @ \
             np.array( # rotate delta position based on base orientation
                 [
@@ -93,7 +93,7 @@ class PlaceToPlanner:
             
             action = CU.create_action(eef_pos=action_pos, grasp=True, id=self.id)
             
-            if np.linalg.norm(eef_pos - target_pos) < 0.01:
+            if np.linalg.norm(eef_pos - target_pos) < 0.05: # not so strict
                 self.task_stage += 1
                 self.pid_eef_pos_ctlr.reset()
         
@@ -144,7 +144,7 @@ class PlaceToPlanner:
             
             action = CU.create_action(eef_pos=action_pos, eef_axisangle=action_axisangle, grasp=False, id=self.id)
             
-            if np.linalg.norm(eef_pos - target_pos) < 0.01: 
+            if np.linalg.norm(eef_pos - target_pos) < 0.05: # not so strict
                 self.task_stage += 1
                 self.pid_eef_pos_ctlr.reset()
                 self.pid_eef_axisangle_ctlr.reset()

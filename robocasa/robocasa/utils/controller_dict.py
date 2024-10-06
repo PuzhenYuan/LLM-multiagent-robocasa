@@ -4,6 +4,7 @@ import robocasa.utils.checker as checker
 import robocasa.utils.control_utils as CU
 from collections import OrderedDict
 
+
 def search_config(lang_command, controller_dict):
     """
     extract dict key and extra parameters from lang_command
@@ -22,6 +23,7 @@ def search_config(lang_command, controller_dict):
     else:
         extra_para = None
     return controller_config, extra_para
+
 
 def get_recent_obs(ob_dict):
     """

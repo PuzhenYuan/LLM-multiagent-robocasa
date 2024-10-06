@@ -121,7 +121,7 @@ class NavigationPlanner:
         elif self.task_stage == 1:
             tz = self.pid_base_ori_ctlr.compute(current_value=base_ori, target_value=target_ori)
             action = CU.map_action(tz, base_ori) # 1-dim
-            action = CU.create_action(base_ori=action, id=self.id)
+            action = CU.create_action(base_ori=action, joint="stable", id=self.id)
             if np.cos(target_ori - base_ori) >= 0.998:
                 self.task_stage += 1
                 self.pid_base_ori_ctlr.reset()

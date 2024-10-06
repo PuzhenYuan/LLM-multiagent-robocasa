@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class PIDController:
     """
     PID controller class
@@ -86,39 +87,36 @@ def map_action(action, base_ori=None):
     else:
         raise ValueError
 
+
 last_grasp0 = False
 last_grasp1 = False # TODO: more elegant way to handle this?
 
-def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None, base_height=None, grasp=None, id=0):
+def create_action(eef_pos=None, eef_axisangle=None, grasp=None, base_pos=None, base_ori=None, base_height=None, joint='relaxed', id=0):
     """
     Create action vector for single mobile robot control.
 
     Args:
         eef_pos (np.array, optional): eef pos action. Defaults to None.
         eef_axisangle (np.array, optional): eef axisangle action. Defaults to None.
+        grasp (bool, optional): whether to grasp. Defaults to None.
         base_pos (np.array, optional): base pos action. Defaults to None.
         base_ori (np.array, optional): base ori action. Defaults to None.
-        grasp (bool, optional): whether to grasp. Defaults to None.
+        base_height (str, optional): base height action. Defaults to None.
+        joint (str, optional): joint stable flag. Defaults to 'relaxed'.
 
     Returns:
         np.array: action vector
     """
     
-    eef_pos = np.zeros(3) if eef_pos is None else eef_pos
-    eef_axisangle = np.zeros(3) if eef_axisangle is None else eef_axisangle
-    base_pos = np.zeros(2) if base_pos is None else base_pos
-    base_ori = np.zeros(1) if base_ori is None else base_ori
+    # handle action inputs
+    eef_pos_action = np.zeros(3) if eef_pos is None else eef_pos
+    eef_axisangle_action = np.zeros(3) if eef_axisangle is None else eef_axisangle
+    base_pos_action = np.zeros(2) if base_pos is None else base_pos
+    base_ori_action = np.zeros(1) if base_ori is None else base_ori
     
-    if base_height == None:
-        base_height_action = np.array([0])
-    elif base_height == "up":
-        base_height_action = np.array([1])
-    elif base_height == "down":
-        base_height_action = np.array([-1])
-    
+    # grasp control, 1 for grasp, -1 for release
     global last_grasp0
     global last_grasp1
-    
     if grasp == None:
         if id == 0:
             grasp_action = np.array([1]) if last_grasp0 else np.array([-1])
@@ -135,8 +133,21 @@ def create_action(eef_pos=None, eef_axisangle=None, base_pos=None, base_ori=None
         else:
             raise ValueError("create action id should be 0 or 1")
         grasp_action = np.array([1]) if grasp else np.array([-1])
-        
-    action = np.concatenate((eef_pos, eef_axisangle, grasp_action, base_pos, base_ori, base_height_action, np.array([-1])), axis=0)
+    
+    # base height control, 0 for no action, 1 for up, -1 for down
+    if base_height == None:
+        base_height_action = np.array([0])
+    elif base_height == "up":
+        base_height_action = np.array([1])
+    elif base_height == "down":
+        base_height_action = np.array([-1])
+    
+    # joint stable flag, 1 for stable, -1 for relaxed, maybe related to joint damping coefficient
+    joint_stable_flag = np.array([1]) if joint == 'stable' else np.array([-1])
+    
+    # create action based on given action parameters
+    action = np.concatenate([eef_pos_action, eef_axisangle_action, grasp_action, \
+                            base_pos_action, base_ori_action, base_height_action, joint_stable_flag], axis=0)
 
     assert action.shape[0] == 12
     return action

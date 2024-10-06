@@ -26,6 +26,7 @@ from robosuite.wrappers import DataCollectionWrapper, VisualizationWrapper
 
 import robocasa
 from robocasa.models.objects.fixtures import FixtureType
+import robocasa.utils.control_utils as CU
 
 import mujoco
 assert mujoco.__version__ == "3.1.1", "MuJoCo version must be 3.1.1. Please run pip install mujoco==3.1.1"
@@ -189,6 +190,8 @@ def collect_human_trajectory(
             action = env.get_control(obs)
         
         # Run environment step
+        action = CU.create_action(base_ori=np.array([0.6]))
+        np.set_printoptions(precision=2, suppress=True)
         print('action: ', action, end='\r')
         obs, reward, done, info = env.step(action)
         if render:
