@@ -37,7 +37,7 @@ import robocasa.utils.control_utils as CU
 import robocasa.utils.controller_dict as CD
 
 
-def run_controlled_rollout_multitask_twoagent(
+def run_llm_rollout_multitask_twoagent(
         env, 
         horizon,
         use_goals=False,
@@ -340,7 +340,7 @@ def run_controlled_rollout_multitask_twoagent(
     return results
 
 
-def run_controlled_multitask_twoagent(args):
+def run_llm_multitask_twoagent(args):
     # some arg checking
     write_video = (args.video_path is not None)
     assert not (args.render and write_video) # either on-screen or video but not both
@@ -465,7 +465,7 @@ def run_controlled_multitask_twoagent(args):
             if verbose:
                 print("\nStarting episode {}...".format(ep_i + 1))
             try:
-                rollout_info = run_controlled_rollout_multitask_twoagent(
+                rollout_info = run_llm_rollout_multitask_twoagent(
                     env=env,
                     horizon=horizon,
                     render=render,
@@ -653,4 +653,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.render == False
-    run_controlled_multitask_twoagent(args)
+    run_llm_multitask_twoagent(args)

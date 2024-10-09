@@ -6,10 +6,9 @@ os.environ['all_proxy'] = ""
 os.environ['ALL_PROXY'] = ""
 
 # set api_key and base_url here
-api_key = "sk-RRKTiQPZGTlk25SHFb3d44F4E73146519086F3F6B3E178F1"
-base_url = "https://free.gpt.ge/v1/"
-default_headers = {"x-foo": "true"}
-
+api_key = ""
+base_url = ""
+default_headers = None
 # initialize prompt
 messages=[
     {

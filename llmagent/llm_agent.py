@@ -136,7 +136,7 @@ if __name__ == "__main__":
             + 'Available commands: wait, reset arm, pick up, place to, navigate ' \
             + 'to, navigation, open microwave door, pick the object from the ' \
             + 'counter and place it in the microwave\n'
-    lmagent = LMAgent(goal=goal, env_info=env_info, api_key="sk-RRKTiQPZGTlk25SHFb3d44F4E73146519086F3F6B3E178F1", base_url="https://free.gpt.ge/v1/")
+    lmagent = LMAgent(goal=goal, env_info=env_info, api_key="", base_url="")
     lmagent.show_history()
     plan, command = lmagent.get_command()
     print(plan)

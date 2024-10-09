@@ -43,7 +43,7 @@ sys.path.append(BASE_PATH)
 from llmagent.llm_agent import LMAgent
 
 
-def run_controlled_rollout_multitask_agent(
+def run_llm_rollout_multitask_agent(
         env, 
         horizon,
         use_goals=False,
@@ -115,8 +115,8 @@ def run_controlled_rollout_multitask_agent(
     + "Available objects in environment: " + ", ".join(object_keys) + "\n" \
     + "Available commands: " + ", ".join([CD.controller_dict[key]["usage"] for key in CD.controller_dict.keys()]) + "\n"
     goal = "pick up vegetable from counter and place it to container in the microwave"
-    api_key = "sk-RRKTiQPZGTlk25SHFb3d44F4E73146519086F3F6B3E178F1"
-    base_url = "https://free.gpt.ge/v1/"
+    api_key = ""
+    base_url = ""
     agent = LMAgent(goal, env_info, api_key, base_url)
     agent.show_history()
     
@@ -282,7 +282,7 @@ def run_controlled_rollout_multitask_agent(
     return results
 
 
-def run_controlled_multitask_agent(args):
+def run_llm_multitask_agent(args):
     # some arg checking
     write_video = (args.video_path is not None)
     assert not (args.render and write_video) # either on-screen or video but not both
@@ -396,7 +396,7 @@ def run_controlled_multitask_agent(args):
             if verbose:
                 print("\nStarting episode {}...".format(ep_i + 1))
             try:
-                rollout_info = run_controlled_rollout_multitask_agent(
+                rollout_info = run_llm_rollout_multitask_agent(
                     env=env,
                     horizon=horizon,
                     render=render,
@@ -582,4 +582,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.render == False
-    run_controlled_multitask_agent(args)
+    run_llm_multitask_agent(args)
