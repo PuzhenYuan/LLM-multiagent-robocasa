@@ -37,31 +37,37 @@ controller_dict = OrderedDict() # order of the key is important
 controller_dict['wait'] = {
     'type': 'planner',
     'planner': planner.WaitPlanner,
+    'usage': 'wait',
 }
 
 controller_dict['reset arm'] = {
     'type': 'planner',
     'planner': planner.ResetArmPlanner,
+    'usage': 'reset arm'
 }
 
 controller_dict['pick up'] = {
     'type': 'planner',
     'planner': planner.PickUpPlanner,
+    'usage': 'pick up (object)',
 }
 
 controller_dict['place to'] = {
     'type': 'planner',
     'planner': planner.PlaceToPlanner,
+    'usage': 'place to (object or fixture)',
 }
 
 controller_dict['navigate to'] = {
     'type': 'planner',
     'planner': planner.NavigationPlanner,
+    'usage': 'navigate to (object or fixture)',
 }
 
 controller_dict['navigation'] = {
     'type': 'planner',
     'planner': planner.NavigationPlanner,
+    'usage': 'navigation',
 }
 
 controller_dict['open microwave door'] = {
@@ -69,13 +75,16 @@ controller_dict['open microwave door'] = {
     'ckpt_path': '/home/ypz/project/model_openpnp_autodl_epoch_700.pth',
     'env_lang': 'open the microwave door', 
     'checker': checker.open_microwave_door_checker,
+    'usage': 'open microwave door'
 }
 
+# TODO: better task design
 controller_dict['pick the object from the counter and place it in the microwave'] = {
     'type': 'policy',
     'ckpt_path': '/home/ypz/project/model_openpnp_autodl_epoch_700.pth',
     'env_lang': 'pick the object from the counter and place it in the microwave',
-    'checker': checker.open_microwave_door_checker, # TODO: better task design
+    'checker': checker.open_microwave_door_checker, 
+    'usage': 'pick the object from the counter and place it in the microwave'
 }
 
 # TODO: to avoid huge gpu memory usage, instore env_embedding instead of env_lang and discard encoder and discard encoder backbone

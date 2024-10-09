@@ -1,0 +1,1 @@
+print("robocasa".startswith(("roboa", "robocasa")))

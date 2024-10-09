@@ -82,7 +82,8 @@ def run_controlled_rollout_multitask_twoagent(
         ac = np.concatenate([ac0, ac1], axis=0)
         ob_dict, r, done, info = env.step(ac)
     
-    # get all valid fixture keys
+    # get all valid keys
+    object_keys = env.env.env.objects.keys()
     fixtures = list(env.env.env.fixtures.values())
     fxtr_classes = [type(fxtr).__name__ for fxtr in fixtures]
     valid_target_fxtr_classes = [
@@ -98,11 +99,11 @@ def run_controlled_rollout_multitask_twoagent(
     for key in fixture_keys:
         print(key)
     print(colored("\nAvailable objects in env {}:".format(type(env.env.env).__name__), "yellow"))
-    for key in env.env.env.objects.keys():
+    for key in object_keys:
         print(key)
     print(colored("\nAvailable commands in controller dict:", "yellow"))
     for key in CD.controller_dict.keys():
-        print(key)
+        print(CD.controller_dict[key]["usage"])
     
     # start episode
     while True:
@@ -233,6 +234,10 @@ def run_controlled_rollout_multitask_twoagent(
                 else:
                     end_step += step_i
                 
+                if verbose:
+                    print(colored("Success: agent0's task {} succeeded".format(task_i), 'green'))
+                    print(colored("Success: agent1's task {} succeeded".format(task_i), 'green'))
+                
                 # delete policy or planner objects
                 if controller_config0["type"] == "policy":
                     del policy0 # to avoid huge gpu memory usage
@@ -268,9 +273,14 @@ def run_controlled_rollout_multitask_twoagent(
                     end_step += step_i
                     
                 if verbose:
-                    if not end_control0:
+                    if not end_control0 and end_control1:
                         print(colored("Failure: horizon reached, agent0's task {} failed".format(task_i), 'red'))
-                    if not end_control1:
+                        print(colored("Success: agent1's task {} succeeded".format(task_i), 'green'))
+                    elif not end_control1 and end_control0:
+                        print(colored("Success: agent0's task {} succeeded".format(task_i), 'green'))
+                        print(colored("Failure: horizon reached, agent1's task {} failed".format(task_i), 'red'))
+                    elif not end_control0 and not end_control1:
+                        print(colored("Failure: horizon reached, agent0's task {} failed".format(task_i), 'red'))
                         print(colored("Failure: horizon reached, agent1's task {} failed".format(task_i), 'red'))
                 
                 # delete policy or planner objects
@@ -301,7 +311,7 @@ def run_controlled_rollout_multitask_twoagent(
             
         if success["task"] == True:
             if verbose:
-                print('All task success in a multitask rollout!')
+                print(colored('All task success in a multitask rollout!!!', 'green'))
             break
         if done:
             if verbose:

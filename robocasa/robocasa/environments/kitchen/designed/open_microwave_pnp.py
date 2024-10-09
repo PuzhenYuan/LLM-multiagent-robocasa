@@ -36,7 +36,7 @@ class OpenMicrowavePnP(Kitchen):
 
     def get_ep_meta(self):
         ep_meta = super().get_ep_meta()
-        obj_lang = self.get_obj_lang()
+        obj_lang = self.get_obj_lang(obj_name="vegetable")
         ep_meta["lang"] = f"open the microwave door, pick the {obj_lang} from the counter and place it in the microwave"
         return ep_meta
     
@@ -44,14 +44,15 @@ class OpenMicrowavePnP(Kitchen):
         cfgs = []
 
         cfgs.append(dict(
-            name="obj",
-            obj_groups=self.obj_groups,
+            name="vegetable",
+            obj_groups=("carrot"),
             exclude_obj_groups=self.exclude_obj_groups,
             graspable=True, microwavable=True,
             placement=dict(
                 fixture=self.counter,
                 sample_region_kwargs=dict(
                     ref=self.microwave,
+                    # TODO: loc="right"
                 ),
                 size=(0.30, 0.30),
                 pos=("ref", -1.0),
@@ -68,24 +69,10 @@ class OpenMicrowavePnP(Kitchen):
             ),
         ))
 
-        # distractors
-        cfgs.append(dict(
-            name="distr_counter",
-            obj_groups="all",
-            placement=dict(
-                fixture=self.distr_counter,
-                sample_region_kwargs=dict(
-                    ref=self.microwave,
-                ),
-                size=(0.30, 0.30),
-                pos=("ref", 1.0),
-            ),
-        ))
-
         return cfgs
 
     def _check_success(self):
-        obj = self.objects["obj"]
+        obj = self.objects["vegetable"]
         container = self.objects["container"]
         door_state = self.microwave.get_door_state(env=self)
         
@@ -97,7 +84,7 @@ class OpenMicrowavePnP(Kitchen):
 
         obj_container_contact = self.check_contact(obj, container)
         container_micro_contact = self.check_contact(container, self.microwave)
-        gripper_obj_far = OU.gripper_obj_far(self)
+        gripper_obj_far = OU.gripper_obj_far(self, obj_name="vegetable")
         task1_success =  obj_container_contact and container_micro_contact and gripper_obj_far # return a list maybe work
 
         task_success = task0_success and task1_success

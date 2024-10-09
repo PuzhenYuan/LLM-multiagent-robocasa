@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import datetime
 import shutil
@@ -33,8 +34,13 @@ from tianshou.env import SubprocVectorEnv
 import robosuite
 from robosuite import load_controller_config
 
+import robocasa
 import robocasa.utils.control_utils as CU
 import robocasa.utils.controller_dict as CD
+
+BASE_PATH = os.path.abspath(robocasa.__file__ + '/../../../')
+sys.path.append(BASE_PATH)
+from llmagent.llm_agent import LMAgent
 
 
 def run_controlled_rollout_multitask_agent(
@@ -79,7 +85,8 @@ def run_controlled_rollout_multitask_agent(
         ac = CU.create_action(grasp=False)
         ob_dict, r, done, info = env.step(ac)
     
-    # get all valid fixture keys
+    # get all valid keys
+    object_keys = env.env.env.objects.keys()
     fixtures = list(env.env.env.fixtures.values())
     fxtr_classes = [type(fxtr).__name__ for fxtr in fixtures]
     valid_target_fxtr_classes = [
@@ -95,12 +102,23 @@ def run_controlled_rollout_multitask_agent(
     for key in fixture_keys:
         print(key)
     print(colored("\nAvailable objects in env {}:".format(type(env.env.env).__name__), "yellow"))
-    for key in env.env.env.objects.keys():
+    for key in object_keys:
         print(key)
     print(colored("\nAvailable commands in controller dict:", "yellow"))
     for key in CD.controller_dict.keys():
-        print(key)
+        print(CD.controller_dict[key]["usage"])
     print()
+    
+    # initialize language model agent
+    env_info = \
+    "Available fixtures in environment: " + ", ".join(fixture_keys) + "\n" \
+    + "Available objects in environment: " + ", ".join(object_keys) + "\n" \
+    + "Available commands: " + ", ".join([CD.controller_dict[key]["usage"] for key in CD.controller_dict.keys()]) + "\n"
+    goal = "pick up vegetable from counter and place it to container in the microwave"
+    api_key = "sk-RRKTiQPZGTlk25SHFb3d44F4E73146519086F3F6B3E178F1"
+    base_url = "https://free.gpt.ge/v1/"
+    agent = LMAgent(goal, env_info, api_key, base_url)
+    agent.show_history()
     
     # start episode
     while True:
@@ -108,10 +126,16 @@ def run_controlled_rollout_multitask_agent(
         
         # get language command and controller config for each agent
         try:
-            lang_command = input(colored("Please enter command for task {}:\n".format(task_i), "yellow"))
-            controller_config, extra_para = CD.search_config(lang_command, CD.controller_dict)
+            print(colored("Begin task {}:".format(task_i), "yellow"))
+            plan, command = agent.get_command()
+            print('Plan:', plan)
+            print('Execution:', command)
+            task = command
+            controller_config, extra_para = CD.search_config(command, CD.controller_dict)
         except ValueError as e:
-            print(colored('Error: {}'.format(e), 'red'))
+            message = 'Error: {}'.format(e)
+            print(colored(message, 'red'))
+            agent.update_messages(message)
             continue
         
         # get policy or planner for each agent
@@ -180,6 +204,11 @@ def run_controlled_rollout_multitask_agent(
                 else:
                     end_step += step_i
                 
+                message = 'Success: task {} {} succeeded'.format(task_i, task)
+                if verbose:
+                    print(colored(message, 'green'))
+                agent.update_messages(message)
+                
                 # delete policy or planner objects
                 if controller_config["type"] == "policy":
                     del policy # to avoid huge gpu memory usage
@@ -201,9 +230,11 @@ def run_controlled_rollout_multitask_agent(
                     end_step = step_i
                 else:
                     end_step += step_i
-                    
+                
+                message = 'Failure: horizon reached, task {} {} failed'.format(task_i, task)
                 if verbose:
-                    print(colored('Failure: horizon reached, task {} failed'.format(task_i), 'red'))
+                    print(colored(message, 'red'))
+                agent.update_messages(message)
                 
                 # delete policy or planner objects
                 if controller_config["type"] == "policy":
@@ -222,7 +253,7 @@ def run_controlled_rollout_multitask_agent(
             
         if success["task"] == True:
             if verbose:
-                print('All task success in a multitask rollout!')
+                print(colored('All task success in a multitask rollout!!!', 'green'))
             break
         if done:
             if verbose:
