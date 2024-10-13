@@ -28,10 +28,8 @@ class PickUpPlanner:
         object_keys = env.objects.keys()
         if extra_para in object_keys:
             self.obj_str = extra_para # obj_str should be one of the names in env._get_obj_cfgs()
-            obj = env.objects[self.obj_str] # rot
-            obj.pos = obs[self.obj_str + '_pos'] # pos
         else:
-            raise ValueError(f'there is no {extra_para} in the environment!')
+            raise ValueError(f'there is no object {extra_para} in the environment!')
         
         self.init_eef_pos = obs[f'robot{self.id}_eef_pos']
         self.init_eef_mat = T.quat2mat(obs[f'robot{self.id}_eef_quat'])

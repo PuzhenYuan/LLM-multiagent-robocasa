@@ -4,6 +4,8 @@ import robocasa.utils.checker as checker
 import robocasa.utils.control_utils as CU
 from collections import OrderedDict
 
+from pprint import pprint
+
 
 def search_config(lang_command, controller_dict):
     """
@@ -64,10 +66,10 @@ controller_dict['navigate to'] = {
     'usage': 'navigate to (object or fixture)',
 }
 
-controller_dict['navigation'] = {
+controller_dict['navigate'] = {
     'type': 'planner',
     'planner': planner.NavigationPlanner,
-    'usage': 'navigation',
+    'usage': 'navigate back',
 }
 
 controller_dict['open microwave door'] = {
@@ -87,8 +89,8 @@ controller_dict['pick the object from the counter and place it in the microwave'
     'usage': 'pick the object from the counter and place it in the microwave'
 }
 
-# TODO: to avoid huge gpu memory usage, instore env_embedding instead of env_lang and discard encoder and discard encoder backbone
+# TODO: to avoid huge gpu memory usage, instore env_embedding instead of env_lang, and discard encoder backbone
 
 if __name__ == "__main__":
-    print(controller_dict)
+    pprint(controller_dict)
     print(search_config('pick up', controller_dict))

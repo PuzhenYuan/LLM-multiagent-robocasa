@@ -8,6 +8,9 @@ from termcolor import colored
 from copy import deepcopy
 
 
+robot0_history = []
+robot1_history = [] # TODO: more elegant way to handle this?
+
 class NavigationPlanner:
     def __init__(self, env, obs, extra_para, id=0):
         
@@ -25,9 +28,20 @@ class NavigationPlanner:
         self.task_stage = 0
         self.id = id
         
+        global robot0_history
+        global robot1_history
+        
+        # initialize history if history is empty
+        if self.id == 0 and not robot0_history:
+            robot0_history.append(env.compute_robot_base_placement_pose(env.init_robot_base_pos))
+            robot0_history.append(env.compute_robot_base_placement_pose(env.init_robot_base_pos))
+        elif self.id == 1 and not robot0_history:
+            robot0_history.append(env.compute_robot_base_placement_pose(env.init_robot_base_pos))
+            robot0_history.append(env.compute_robot_base_placement_pose(env.init_robot_base_pos))
+        
         # get target fixture randomly
         if extra_para == None:
-
+            
             fixtures = list(env.fixtures.values())
             fxtr_classes = [type(fxtr).__name__ for fxtr in fixtures]
             valid_target_fxtr_classes = [
@@ -44,8 +58,17 @@ class NavigationPlanner:
                 break
                 
             self.target_pos, self.target_ori = env.compute_robot_base_placement_pose(self.target_fixture)
-    
-        # navigate to the given fixture or item
+        
+        # navigate back to the second to last position
+        elif extra_para == 'back':
+            if self.id == 0:
+                self.target_pos, self.target_ori = robot0_history[-2]
+                robot0_history.append((self.target_pos, self.target_ori))
+            elif self.id == 1:
+                self.target_pos, self.target_ori = robot1_history[-2]
+                robot1_history.append((self.target_pos, self.target_ori))
+        
+        # navigate to the given fixture or object
         else:
             object_keys = env.objects.keys()
             
@@ -64,6 +87,10 @@ class NavigationPlanner:
                 obj = env.objects[obj_str] # rot
                 obj.pos = obs[obj_str + '_pos'] # pos
                 self.target_pos, self.target_ori = env.compute_robot_base_placement_pose(obj)
+                if self.id == 0:
+                    robot0_history.append((self.target_pos, self.target_ori))
+                elif self.id == 1:
+                    robot1_history.append((self.target_pos, self.target_ori))
                 
             elif extra_para in fixture_keys: # navigate to the given fixture
                 fixture_str = extra_para
@@ -71,9 +98,13 @@ class NavigationPlanner:
                     if type(fxtr).__name__.lower() == fixture_str:
                         fixture = fxtr
                 self.target_pos, self.target_ori = env.compute_robot_base_placement_pose(fixture)
+                if self.id == 0:
+                    robot0_history.append((self.target_pos, self.target_ori))
+                elif self.id == 1:
+                    robot1_history.append((self.target_pos, self.target_ori))
             
             else:
-                raise ValueError(f'there is no {extra_para} in the environment!')
+                raise ValueError(f'there is no fixture or object {extra_para} in the environment!')
         
         # get base position and orientation
         base_pos = obs[f'robot{self.id}_base_pos'][:2]

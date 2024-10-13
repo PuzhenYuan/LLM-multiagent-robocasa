@@ -106,7 +106,7 @@ class PlaceToPlanner:
                 self.above_placement_pos = self.placement_pos + np.array([0, 0, 0.10]) # move above the fixture first
         
         else:
-            raise ValueError(f'there is no {extra_para} in the environment!')
+            raise ValueError(f'there is no fixture or object {extra_para} in the environment!')
     
     def get_control(self, env=None, obs=None):
         """

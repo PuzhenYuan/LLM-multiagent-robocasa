@@ -32,7 +32,7 @@ class OpenMicrowavePnP(Kitchen):
         Resets simulation internal configurations.
         """
         super()._reset_internal()
-        self.microwave.set_door_state(min=0.9, max=1.0, env=self, rng=self.rng) # door is closed initially
+        self.microwave.set_door_state(min=0.0, max=0.1, env=self, rng=self.rng) # door is closed initially
 
     def get_ep_meta(self):
         ep_meta = super().get_ep_meta()
@@ -87,5 +87,5 @@ class OpenMicrowavePnP(Kitchen):
         gripper_obj_far = OU.gripper_obj_far(self, obj_name="vegetable")
         task1_success =  obj_container_contact and container_micro_contact and gripper_obj_far # return a list maybe work
 
-        task_success = task0_success and task1_success and False
+        task_success = task0_success and task1_success
         return {'task': task_success, 'task0': task0_success, 'task1': task1_success}
