@@ -114,7 +114,7 @@ def run_llm_rollout_multitask_agent(
     "Available fixtures in environment: " + ", ".join(fixture_keys) + "\n" \
     + "Available objects in environment: " + ", ".join(object_keys) + "\n" \
     + "Available commands: " + ", ".join([CD.controller_dict[key]["usage"] for key in CD.controller_dict.keys()]) + "\n"
-    goal = "pick up vegetable from counter and place it to container in the microwave"
+    goal = "pick up vegetable from counter and place it to container in the microwave" # TODO: maybe env.env.env.get_ep_meta()["lang"]?
     api_key = ""
     base_url = ""
     agent = LMAgent(goal, env_info, api_key, base_url)

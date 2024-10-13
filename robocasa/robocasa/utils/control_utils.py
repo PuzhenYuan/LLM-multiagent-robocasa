@@ -25,14 +25,8 @@ class PIDController:
         self.integral = None
         self.previous_error = None
 
-# global PID controller parameters, TODO: further tune these parameters
-kp_base_pos = 5.0
-ki_base_pos = 0.01
-kd_base_pos = 0.01
 
-kp_base_ori = 1.5
-ki_base_ori = 0.05
-kd_base_ori = 0
+# global PID controller parameters, TODO: further tune these parameters
 
 kp_eef_pos = 2.0
 ki_eef_pos = 0.02
@@ -42,11 +36,24 @@ kp_eef_axisangle = 1.0
 ki_eef_axisangle = 0.01
 kd_eef_axisangle = 0
 
+kp_base_pos = 5.0
+ki_base_pos = 0.01
+kd_base_pos = 0.01
+
+kp_base_ori = 1.5
+ki_base_ori = 0.05
+kd_base_ori = 0
+
+kp_base_height = 3.0
+ki_base_height = 0.03
+kd_base_height = 0
+
 # global pid controllers
-pid_base_pos_ctlr = PIDController(kp=kp_base_pos, ki=ki_base_pos, kd=kd_base_pos)
-pid_base_ori_ctlr = PIDController(kp=kp_base_ori, ki=ki_base_ori, kd=kd_base_ori)
 pid_eef_pos_ctlr = PIDController(kp=kp_eef_pos, ki=ki_eef_pos, kd=kd_eef_pos)
 pid_eef_axisangle_ctlr = PIDController(kp=kp_eef_axisangle, ki=ki_eef_axisangle, kd=kd_eef_axisangle)
+pid_base_pos_ctlr = PIDController(kp=kp_base_pos, ki=ki_base_pos, kd=kd_base_pos)
+pid_base_ori_ctlr = PIDController(kp=kp_base_ori, ki=ki_base_ori, kd=kd_base_ori)
+pid_base_height_ctlr = PIDController(kp=kp_base_height, ki=ki_base_height, kd=kd_base_height)
 
 
 def map_action(action, base_ori=None):
@@ -113,6 +120,7 @@ def create_action(eef_pos=None, eef_axisangle=None, grasp=None, base_pos=None, b
     eef_axisangle_action = np.zeros(3) if eef_axisangle is None else eef_axisangle
     base_pos_action = np.zeros(2) if base_pos is None else base_pos
     base_ori_action = np.zeros(1) if base_ori is None else base_ori
+    base_height_action = np.zeros(1) if base_height is None else base_height
     
     # grasp control, 1 for grasp, -1 for release
     global last_grasp0
@@ -133,14 +141,6 @@ def create_action(eef_pos=None, eef_axisangle=None, grasp=None, base_pos=None, b
         else:
             raise ValueError("create action id should be 0 or 1")
         grasp_action = np.array([1]) if grasp else np.array([-1])
-    
-    # base height control, 0 for no action, 1 for up, -1 for down
-    if base_height == None:
-        base_height_action = np.array([0])
-    elif base_height == "up":
-        base_height_action = np.array([1])
-    elif base_height == "down":
-        base_height_action = np.array([-1])
     
     # joint stable flag, 1 for stable, -1 for relaxed, maybe related to joint damping coefficient
     joint_stable_flag = np.array([1]) if joint == 'stable' else np.array([-1])

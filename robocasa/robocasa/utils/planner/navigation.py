@@ -16,10 +16,11 @@ class NavigationPlanner:
         if isinstance(env, EnvRobosuite):
             env = env.env
         
-        self.pid_base_pos_ctlr = deepcopy(CU.pid_base_pos_ctlr)
-        self.pid_base_ori_ctlr = deepcopy(CU.pid_base_ori_ctlr)
         self.pid_eef_pos_ctlr = deepcopy(CU.pid_eef_pos_ctlr)
         self.pid_eef_axisangle_ctlr = deepcopy(CU.pid_eef_axisangle_ctlr)
+        self.pid_base_pos_ctlr = deepcopy(CU.pid_base_pos_ctlr)
+        self.pid_base_ori_ctlr = deepcopy(CU.pid_base_ori_ctlr)
+        self.pid_base_height_ctlr = deepcopy(CU.pid_base_height_ctlr)
         
         self.task_stage = 0
         self.id = id
@@ -84,14 +85,18 @@ class NavigationPlanner:
         
         # calculate middle point 1 and middle point 2
         self.init_pos = base_pos
+        self.dist = 0.5
         self.middle1_pos = np.array([1.5, -1.5])
-        self.middle1_pos[0] = base_pos[0] - 0.25 * np.cos(base_ori)
-        self.middle1_pos[1] = base_pos[1] - 0.25 * np.sin(base_ori)
+        self.middle1_pos[0] = base_pos[0] - self.dist * np.cos(base_ori)
+        self.middle1_pos[1] = base_pos[1] - self.dist * np.sin(base_ori)
         self.middle2_pos = np.array([1.5, -1.5])
-        self.middle2_pos[0] = target_pos[0] - 0.25 * np.cos(target_ori)
-        self.middle2_pos[1] = target_pos[1] - 0.25 * np.sin(target_ori)
+        self.middle2_pos[0] = target_pos[0] - self.dist * np.cos(target_ori)
+        self.middle2_pos[1] = target_pos[1] - self.dist * np.sin(target_ori)
     
     def get_control(self, env=None, obs=None):
+        """
+        control method designed for navigation task
+        """
         
         if isinstance(env, EnvWrapper):
             env = env.env

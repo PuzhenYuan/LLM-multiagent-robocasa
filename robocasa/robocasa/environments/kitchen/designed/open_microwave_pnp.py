@@ -10,6 +10,9 @@ class OpenMicrowavePnP(Kitchen):
         *args, 
         **kwargs
     ):
+        # kwargs["layout_ids"] = random.choice([1, 3, 6, 9])
+        # layout_ids = 1, 3, 6, 9 means that the vegetable is always on the right of microwave
+        
         self.obj_groups = obj_groups
         self.exclude_obj_groups = exclude_obj_groups
         super().__init__(*args, **kwargs)
@@ -22,9 +25,6 @@ class OpenMicrowavePnP(Kitchen):
         self.counter = self.register_fixture_ref(
             "counter", dict(id=FixtureType.COUNTER, ref=self.microwave),
         )
-        self.distr_counter = self.register_fixture_ref(
-            "distr_counter", dict(id=FixtureType.COUNTER, ref=self.microwave),
-        )
         self.init_robot_base_pos = self.microwave
     
     def _reset_internal(self):
@@ -32,7 +32,7 @@ class OpenMicrowavePnP(Kitchen):
         Resets simulation internal configurations.
         """
         super()._reset_internal()
-        self.microwave.set_door_state(min=0.0, max=0.1, env=self, rng=self.rng) # door is closed initially
+        self.microwave.set_door_state(min=0.9, max=1.0, env=self, rng=self.rng) # door is closed initially
 
     def get_ep_meta(self):
         ep_meta = super().get_ep_meta()
@@ -49,7 +49,7 @@ class OpenMicrowavePnP(Kitchen):
             exclude_obj_groups=self.exclude_obj_groups,
             graspable=True, microwavable=True,
             placement=dict(
-                fixture=self.counter,
+                fixture=self.counter, # counter
                 sample_region_kwargs=dict(
                     ref=self.microwave,
                     # TODO: loc="right"
@@ -87,5 +87,5 @@ class OpenMicrowavePnP(Kitchen):
         gripper_obj_far = OU.gripper_obj_far(self, obj_name="vegetable")
         task1_success =  obj_container_contact and container_micro_contact and gripper_obj_far # return a list maybe work
 
-        task_success = task0_success and task1_success
+        task_success = task0_success and task1_success and False
         return {'task': task_success, 'task0': task0_success, 'task1': task1_success}

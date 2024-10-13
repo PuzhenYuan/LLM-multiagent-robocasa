@@ -16,10 +16,11 @@ class PickUpPlanner:
         if isinstance(env, EnvRobosuite):
             env = env.env
         
-        self.pid_base_pos_ctlr = deepcopy(CU.pid_base_pos_ctlr)
-        self.pid_base_ori_ctlr = deepcopy(CU.pid_base_ori_ctlr)
         self.pid_eef_pos_ctlr = deepcopy(CU.pid_eef_pos_ctlr)
         self.pid_eef_axisangle_ctlr = deepcopy(CU.pid_eef_axisangle_ctlr)
+        self.pid_base_pos_ctlr = deepcopy(CU.pid_base_pos_ctlr)
+        self.pid_base_ori_ctlr = deepcopy(CU.pid_base_ori_ctlr)
+        self.pid_base_height_ctlr = deepcopy(CU.pid_base_height_ctlr)
         
         self.task_stage = 0
         self.id = id
@@ -39,6 +40,9 @@ class PickUpPlanner:
         self.above_obj_pos[2] = np.clip(self.above_obj_pos[2], 1, 1.1) # too high or low will cause collision with cabinet and sink, respectively
 
     def get_control(self, env=None, obs=None):
+        """
+        control method designed for pick up object
+        """
         
         if isinstance(env, EnvWrapper):
             env = env.env
@@ -183,7 +187,7 @@ class PickUpPlanner:
             
             action = CU.create_action(eef_pos=action_pos, eef_axisangle=action_axisangle, grasp=True, id=self.id)
             
-            if np.linalg.norm(eef_pos - target_pos) < 0.01:
+            if np.linalg.norm(eef_pos - target_pos) < 0.03:
                 # reset all planner related infomation 
                 self.task_stage = 0
                 self.init_eef_pos = None
